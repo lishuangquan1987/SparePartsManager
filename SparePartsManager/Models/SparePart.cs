@@ -45,4 +45,8 @@ public class SparePart
 
     [SugarColumn(Length = 20, IsNullable = false)]
     public string Status { get; set; } = "InStock";
+
+    /// <summary>所属项目（可为空）</summary>
+    [SugarColumn(Length = 100, IsNullable = true)]
+    public string? ProjectName { get; set; }
 }

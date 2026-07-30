@@ -1,0 +1,97 @@
+<UserControl x:Class="SparePartsManager.Views.StockAlertView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:SparePartsManager.ViewModels"
+             Background="#F0F4F8">
+    <UserControl.DataContext>
+        <vm:StockAlertViewModel/>
+    </UserControl.DataContext>
+
+    <UserControl.Resources>
+        <Style x:Key="ToolButtonStyle" TargetType="Button">
+            <Setter Property="Height" Value="34"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" CornerRadius="4" Padding="14,0">
+                            <TextBlock Text="{TemplateBinding Content}"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center"
+                                       Foreground="{TemplateBinding Foreground}"
+                                       FontSize="{TemplateBinding FontSize}"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </UserControl.Resources>
+
+    <DockPanel Margin="24">
+        <TextBlock DockPanel.Dock="Top" Text="库存警告阈值设置" FontSize="20" FontWeight="Bold"
+                   Foreground="#1E3A5F" Margin="0,8,0,6"/>
+        <TextBlock DockPanel.Dock="Top" Text="按「规格 + 型号」设定最低库存数量，低于阈值时系统将自动告警"
+                   FontSize="12" Foreground="#888" Margin="0,0,0,16"/>
+
+        <!-- 工具栏 -->
+        <Border DockPanel.Dock="Top" Background="White" CornerRadius="8"
+                Padding="16,12" Margin="0,0,0,16"
+                BorderBrush="#E0E6ED" BorderThickness="1">
+            <StackPanel Orientation="Horizontal">
+                <Button Content="新增规则" Width="120"
+                        Background="#007ACC" Foreground="White" Style="{StaticResource ToolButtonStyle}"
+                        Command="{Binding AddCommand}"/>
+                <Button Content="编辑" Width="100" Margin="8,0,0,0"
+                        Background="#FFB90F" Foreground="White" Style="{StaticResource ToolButtonStyle}"
+                        Command="{Binding EditCommand}"/>
+                <Button Content="删除" Width="100" Margin="8,0,0,0"
+                        Background="#DC3545" Foreground="White" Style="{StaticResource ToolButtonStyle}"
+                        Command="{Binding DeleteCommand}"/>
+            </StackPanel>
+        </Border>
+
+        <!-- 数据表格 -->
+        <Border Background="White" CornerRadius="8" Padding="4"
+                BorderBrush="#E0E6ED" BorderThickness="1">
+            <DataGrid ItemsSource="{Binding Alerts}" SelectedItem="{Binding SelectedAlert}"
+                      AutoGenerateColumns="False" IsReadOnly="True" SelectionMode="Single"
+                      RowHeaderWidth="0" Background="White" GridLinesVisibility="Horizontal"
+                      CanUserAddRows="False" CanUserDeleteRows="False"
+                      FontSize="13" Foreground="#444" BorderThickness="0">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="规格" Binding="{Binding Specification}" Width="*"/>
+                    <DataGridTextColumn Header="型号" Binding="{Binding Model}" Width="*"/>
+                    <DataGridTextColumn Header="最低阈值" Binding="{Binding Threshold}" Width="120"/>
+                    <DataGridTextColumn Header="当前库存" Binding="{Binding CurrentStock}" Width="120"/>
+                </DataGrid.Columns>
+                <DataGrid.ColumnHeaderStyle>
+                    <Style TargetType="DataGridColumnHeader">
+                        <Setter Property="Background" Value="#F5F7FA"/>
+                        <Setter Property="Foreground" Value="#1E3A5F"/>
+                        <Setter Property="FontWeight" Value="SemiBold"/>
+                        <Setter Property="Height" Value="38"/>
+                        <Setter Property="BorderBrush" Value="#E0E6ED"/>
+                    </Style>
+                </DataGrid.ColumnHeaderStyle>
+                <DataGrid.RowStyle>
+                    <Style TargetType="DataGridRow">
+                        <Setter Property="Height" Value="36"/>
+                        <Setter Property="BorderBrush" Value="#F0F0F0"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsWarning}" Value="True">
+                                <Setter Property="Background" Value="#FFEAEA"/>
+                                <Setter Property="Foreground" Value="#B41E1E"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </DataGrid.RowStyle>
+            </DataGrid>
+        </Border>
+
+        <!-- 提示说明 -->
+        <TextBlock DockPanel.Dock="Bottom" Margin="0,12,0,0" FontSize="11" Foreground="#999"
+                   Text="提示：当某种「规格+型号」的在库数量低于设定阈值时，系统将在登录时弹窗警告，并在备件列表中红色高亮显示。"/>
+    </DockPanel>
+</UserControl>

@@ -2,28 +2,22 @@
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <TargetFrameworks>net8.0-windows;net472</TargetFrameworks>
+    <TargetFramework>net472</TargetFramework>
     <Nullable>enable</Nullable>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <LangVersion>12</LangVersion>
-  </PropertyGroup>
-
-  <PropertyGroup Condition="'$(TargetFramework)' == 'net8.0-windows'">
-    <UseWindowsForms>true</UseWindowsForms>
-  </PropertyGroup>
-
-  <PropertyGroup Condition="'$(TargetFramework)' == 'net472'">
-    <UseWindowsForms>true</UseWindowsForms>
+    <LangVersion>10</LangVersion>
+    <UseWPF>true</UseWPF>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="SqlSugarCore" Version="5.1.4.216" Condition="'$(TargetFramework)' == 'net8.0-windows'" />
-    <PackageReference Include="SqlSugar" Version="5.1.4.207" Condition="'$(TargetFramework)' == 'net472'" />
-    <PackageReference Include="System.Data.SQLite.Core" Version="1.0.119" Condition="'$(TargetFramework)' == 'net472'" />
-    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" Condition="'$(TargetFramework)' == 'net472'" />
+    <PackageReference Include="SqlSugar" Version="5.1.4.207" />
+    <PackageReference Include="System.Data.SQLite.Core" Version="1.0.119" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="7.1.2" />
+    <PackageReference Include="LiveChartsCore.SkiaSharpView.WPF" Version="2.0.0-rc2" />
+    <PackageReference Include="WPFDevelopers" Version="*" />
   </ItemGroup>
 
-  <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
+  <ItemGroup>
     <Reference Include="System.Windows.Forms" />
     <Reference Include="System.Drawing" />
     <Reference Include="Microsoft.VisualBasic" />

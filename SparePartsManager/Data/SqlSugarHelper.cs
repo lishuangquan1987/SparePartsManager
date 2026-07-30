@@ -48,7 +48,8 @@ public static class SqlSugarHelper
             typeof(Models.User),
             typeof(Models.SparePart),
             typeof(Models.StockAlert),
-            typeof(Models.Specification)
+            typeof(Models.Specification),
+            typeof(Models.Project)
         );
 
         // 兼容升级：为已存在的表补齐缺失的列
@@ -80,10 +81,14 @@ public static class SqlSugarHelper
                 AddColumnIfMissing(db, "SpareParts", "ShelfNo", "INTEGER", 0);
                 AddColumnIfMissing(db, "SpareParts", "LayerNo", "INTEGER", 0);
                 AddColumnIfMissing(db, "SpareParts", "PositionNo", "INTEGER", 0);
+                // 新增项目字段
+                AddColumnIfMissing(db, "SpareParts", "ProjectName", "NVARCHAR(100)", "");
             }
 
             // 初始化规格字典表默认值
             InitDefaultSpecifications(db);
+            // 初始化项目字典表默认值
+            InitDefaultProjects(db);
 
             if (db.DbMaintenance.IsAnyTable("Users", false))
             {
@@ -271,6 +276,23 @@ public static class SqlSugarHelper
         }
         catch { }
     }
+    /// <summary>
+    /// 初始化项目字典默认值
+    /// </summary>
+    private static void InitDefaultProjects(ISqlSugarClient db)
+    {
+        try
+        {
+            var exists = db.Queryable<Models.Project>().Any();
+            if (!exists)
+            {
+                var defaults = new[] { "A项目", "B项目", "C项目" };
+                db.Insertable(defaults.Select(p => new Models.Project { Name = p }).ToList()).ExecuteCommand();
+            }
+        }
+        catch { }
+    }
+
     /// <param name="password">明文密码</param>
     /// <param name="saltHex">hex 编码的随机盐</param>
     public static string HashPassword(string password, string saltHex)

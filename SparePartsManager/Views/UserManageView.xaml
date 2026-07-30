@@ -1,0 +1,96 @@
+<UserControl x:Class="SparePartsManager.Views.UserManageView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:SparePartsManager.ViewModels"
+             Background="#F0F4F8">
+    <UserControl.DataContext>
+        <vm:UserManageViewModel/>
+    </UserControl.DataContext>
+
+    <UserControl.Resources>
+        <Style x:Key="ToolButtonStyle" TargetType="Button">
+            <Setter Property="Height" Value="34"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" CornerRadius="4" Padding="14,0">
+                            <TextBlock Text="{TemplateBinding Content}"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center"
+                                       Foreground="{TemplateBinding Foreground}"
+                                       FontSize="{TemplateBinding FontSize}"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Opacity" Value="0.85"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+    </UserControl.Resources>
+
+    <DockPanel Margin="24">
+        <TextBlock DockPanel.Dock="Top" Text="用户管理" FontSize="20" FontWeight="Bold"
+                   Foreground="#1E3A5F" Margin="0,8,0,20"/>
+
+        <!-- 工具栏 -->
+        <Border DockPanel.Dock="Top" Background="White" CornerRadius="8"
+                Padding="16,12" Margin="0,0,0,16"
+                BorderBrush="#E0E6ED" BorderThickness="1">
+            <StackPanel Orientation="Horizontal">
+                <Button Content="新增用户" Width="120"
+                        Background="#007ACC" Foreground="White" Style="{StaticResource ToolButtonStyle}"
+                        Command="{Binding AddCommand}"/>
+                <Button Content="编辑" Width="90" Margin="8,0,0,0"
+                        Background="#FFB90F" Foreground="White" Style="{StaticResource ToolButtonStyle}"
+                        Command="{Binding EditCommand}"/>
+                <Button Content="删除" Width="90" Margin="8,0,0,0"
+                        Background="#DC3545" Foreground="White" Style="{StaticResource ToolButtonStyle}"
+                        Command="{Binding DeleteCommand}"/>
+            </StackPanel>
+        </Border>
+
+        <!-- 数据表格 -->
+        <Border Background="White" CornerRadius="8" Padding="4"
+                BorderBrush="#E0E6ED" BorderThickness="1">
+            <DataGrid ItemsSource="{Binding Users}" SelectedItem="{Binding SelectedUser}"
+                      AutoGenerateColumns="False" IsReadOnly="True" SelectionMode="Single"
+                      RowHeaderWidth="0" Background="White" GridLinesVisibility="Horizontal"
+                      CanUserAddRows="False" CanUserDeleteRows="False"
+                      FontSize="13" Foreground="#444" BorderThickness="0">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="用户名" Binding="{Binding Username}" Width="*"/>
+                    <DataGridTextColumn Header="真实姓名" Binding="{Binding RealName}" Width="*"/>
+                    <DataGridTextColumn Header="角色" Binding="{Binding Role}" Width="100"/>
+                    <DataGridTextColumn Header="创建时间" Binding="{Binding CreatedAt, StringFormat=yyyy-MM-dd}" Width="140"/>
+                </DataGrid.Columns>
+                <DataGrid.ColumnHeaderStyle>
+                    <Style TargetType="DataGridColumnHeader">
+                        <Setter Property="Background" Value="#F5F7FA"/>
+                        <Setter Property="Foreground" Value="#1E3A5F"/>
+                        <Setter Property="FontWeight" Value="SemiBold"/>
+                        <Setter Property="Height" Value="38"/>
+                        <Setter Property="BorderBrush" Value="#E0E6ED"/>
+                    </Style>
+                </DataGrid.ColumnHeaderStyle>
+                <DataGrid.RowStyle>
+                    <Style TargetType="DataGridRow">
+                        <Setter Property="Height" Value="36"/>
+                        <Setter Property="BorderBrush" Value="#F0F0F0"/>
+                        <Style.Triggers>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter Property="Background" Value="#E3F2FD"/>
+                                <Setter Property="BorderBrush" Value="#007ACC"/>
+                            </Trigger>
+                        </Style.Triggers>
+                    </Style>
+                </DataGrid.RowStyle>
+            </DataGrid>
+        </Border>
+    </DockPanel>
+</UserControl>
