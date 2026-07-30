@@ -1,18 +1,27 @@
 <UserControl x:Class="SparePartsManager.Views.StockOutView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="clr-namespace:SparePartsManager.ViewModels"
+             mc:Ignorable="d"
+             d:DataContext="{d:DesignInstance Type=vm:StockOutViewModel, IsDesignTimeCreatable=True}"
              Background="White">
-    <UserControl.DataContext>
-        <vm:StockOutViewModel/>
-    </UserControl.DataContext>
 
-    <DockPanel Margin="15">
-        <TextBlock DockPanel.Dock="Top" Text="备件出库 — 勾选多条在库备件，批量确认出库"
+    <Grid Margin="15">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <TextBlock Grid.Row="0" Text="备件出库 — 勾选多条在库备件，批量确认出库"
                    FontSize="15" FontWeight="Bold" Foreground="#333" Margin="0,10,0,12"/>
 
         <!-- 可折叠筛选面板 -->
-        <Border DockPanel.Dock="Top" Background="#F5F5FA" CornerRadius="4" Margin="0,0,0,8" Padding="0">
+        <Border Grid.Row="1" Background="#F5F5FA" CornerRadius="4" Margin="0,0,0,8" Padding="0">
             <Expander Header="筛选条件" Background="Transparent" IsExpanded="False"
                       FontSize="13" FontWeight="SemiBold" Foreground="#444">
                 <ScrollViewer MaxHeight="300" VerticalScrollBarVisibility="Auto">
@@ -113,7 +122,7 @@
         </Border>
 
         <!-- 全选 + 出库按钮 -->
-        <Border DockPanel.Dock="Top" Background="#F5F5FA" Padding="8,6" Margin="0,6,0,0" CornerRadius="4">
+        <Border Grid.Row="2" Background="#F5F5FA" Padding="8,6" Margin="0,6,0,0" CornerRadius="4">
             <StackPanel Orientation="Horizontal">
                 <CheckBox Content="全选" IsChecked="{Binding SelectAll}" VerticalAlignment="Center"/>
                 <Button Content="确认出库（选中项）" Height="35" FontSize="13" FontWeight="Bold"
@@ -123,7 +132,7 @@
         </Border>
 
         <!-- 底部：居中分页 -->
-        <Border DockPanel.Dock="Bottom" Background="#F5F5FA" Padding="8,6" Margin="0,8,0,0" CornerRadius="4">
+        <Border Grid.Row="4" Background="#F5F5FA" Padding="8,6" Margin="0,8,0,0" CornerRadius="4">
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
                 <Button Content="首页" Height="28" FontSize="11" Padding="6,0" Margin="0,0,2,0"
                         Background="#E0E0E0" Foreground="#333" BorderThickness="0"
@@ -144,7 +153,7 @@
 
 
         <!-- DataGrid -->
-        <DataGrid ItemsSource="{Binding Parts}" AutoGenerateColumns="False"
+        <DataGrid Grid.Row="3" ItemsSource="{Binding Parts}" AutoGenerateColumns="False"
                   IsReadOnly="False" SelectionMode="Single" RowHeaderWidth="0"
                   Background="White" GridLinesVisibility="Horizontal"
                   CanUserAddRows="False" CanUserDeleteRows="False">
@@ -164,5 +173,5 @@
                 <DataGridTextColumn Header="备注" Binding="{Binding Remark}" Width="120"/>
             </DataGrid.Columns>
         </DataGrid>
-    </DockPanel>
+    </Grid>
 </UserControl>

@@ -1,11 +1,12 @@
 <UserControl x:Class="SparePartsManager.Views.StockAlertView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="clr-namespace:SparePartsManager.ViewModels"
+             mc:Ignorable="d"
+             d:DataContext="{d:DesignInstance Type=vm:StockAlertViewModel, IsDesignTimeCreatable=True}"
              Background="#F0F4F8">
-    <UserControl.DataContext>
-        <vm:StockAlertViewModel/>
-    </UserControl.DataContext>
 
     <UserControl.Resources>
         <Style x:Key="ToolButtonStyle" TargetType="Button">
@@ -29,14 +30,22 @@
         </Style>
     </UserControl.Resources>
 
-    <DockPanel Margin="24">
-        <TextBlock DockPanel.Dock="Top" Text="库存警告阈值设置" FontSize="20" FontWeight="Bold"
+    <Grid Margin="24">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <TextBlock Grid.Row="0" Text="库存警告阈值设置" FontSize="20" FontWeight="Bold"
                    Foreground="#1E3A5F" Margin="0,8,0,6"/>
-        <TextBlock DockPanel.Dock="Top" Text="按「规格 + 型号」设定最低库存数量，低于阈值时系统将自动告警"
+        <TextBlock Grid.Row="1" Text="按「规格 + 型号」设定最低库存数量，低于阈值时系统将自动告警"
                    FontSize="12" Foreground="#888" Margin="0,0,0,16"/>
 
         <!-- 工具栏 -->
-        <Border DockPanel.Dock="Top" Background="White" CornerRadius="8"
+        <Border Grid.Row="2" Background="White" CornerRadius="8"
                 Padding="16,12" Margin="0,0,0,16"
                 BorderBrush="#E0E6ED" BorderThickness="1">
             <StackPanel Orientation="Horizontal">
@@ -91,7 +100,7 @@
         </Border>
 
         <!-- 提示说明 -->
-        <TextBlock DockPanel.Dock="Bottom" Margin="0,12,0,0" FontSize="11" Foreground="#999"
+        <TextBlock Grid.Row="4" Margin="0,12,0,0" FontSize="11" Foreground="#999"
                    Text="提示：当某种「规格+型号」的在库数量低于设定阈值时，系统将在登录时弹窗警告，并在备件列表中红色高亮显示。"/>
-    </DockPanel>
+    </Grid>
 </UserControl>

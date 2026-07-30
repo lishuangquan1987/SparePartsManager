@@ -35,6 +35,9 @@ public class InvertedBooleanToVisibilityConverter : IValueConverter
 
 public class StatisticsViewModel : ObservableObject
 {
+    /// <summary>SkiaSharp 渲染中文字体（Windows 微软雅黑）</summary>
+    private static readonly SKTypeface ChineseTypeface = SKTypeface.FromFamilyName("Microsoft YaHei");
+
     private DateTime _startDate = DateTime.Now.AddMonths(-6);
     public DateTime StartDate
     {
@@ -180,7 +183,7 @@ public class StatisticsViewModel : ObservableObject
             new Axis
             {
                 Labels = new[] { "总入库", "总出库", "当前库存", "低库存" },
-                LabelsPaint = new SolidColorPaint(SKColors.Black),
+                LabelsPaint = new SolidColorPaint(SKColors.Black) { SKTypeface = ChineseTypeface },
                 SeparatorsPaint = new SolidColorPaint(SKColors.Transparent),
                 
             }
@@ -191,7 +194,7 @@ public class StatisticsViewModel : ObservableObject
             new Axis
             {
                 MinLimit = 0,
-                LabelsPaint = new SolidColorPaint(SKColors.Black),
+                LabelsPaint = new SolidColorPaint(SKColors.Black) { SKTypeface = ChineseTypeface },
                 SeparatorsPaint = new SolidColorPaint(new SKColor(200, 210, 220)) { StrokeThickness = 1 }
             }
         };
@@ -253,7 +256,7 @@ public class StatisticsViewModel : ObservableObject
             new Axis
             {
                 Labels = months.ToArray(),
-                LabelsPaint = new SolidColorPaint(SKColors.Black),
+                LabelsPaint = new SolidColorPaint(SKColors.Black) { SKTypeface = ChineseTypeface },
                 SeparatorsPaint = new SolidColorPaint(new SKColor(200, 210, 220)) { StrokeThickness = 1 }
             }
         };
@@ -263,7 +266,7 @@ public class StatisticsViewModel : ObservableObject
             new Axis
             {
                 MinLimit = 0,
-                LabelsPaint = new SolidColorPaint(SKColors.Black),
+                LabelsPaint = new SolidColorPaint(SKColors.Black) { SKTypeface = ChineseTypeface },
                 SeparatorsPaint = new SolidColorPaint(new SKColor(200, 210, 220)) { StrokeThickness = 1 }
             }
         };
@@ -317,7 +320,7 @@ public class StatisticsViewModel : ObservableObject
                 HoverPushout = 5,
                 Pushout = idx == 0 ? 5 : 0,
                 DataLabelsPosition = LiveChartsCore.Measure.PolarLabelsPosition.Outer,
-                DataLabelsPaint = new SolidColorPaint(SKColors.Black) { SKTypeface = null },
+                DataLabelsPaint = new SolidColorPaint(SKColors.Black) { SKTypeface = ChineseTypeface },
                 DataLabelsSize = 12
             });
         }
@@ -382,7 +385,7 @@ public class StatisticsViewModel : ObservableObject
             new Axis
             {
                 Labels = allProjects.ToArray(),
-                LabelsPaint = new SolidColorPaint(SKColors.Black),
+                LabelsPaint = new SolidColorPaint(SKColors.Black) { SKTypeface = ChineseTypeface },
                 SeparatorsPaint = new SolidColorPaint(new SKColor(200, 210, 220)) { StrokeThickness = 1 }
             }
         };
@@ -392,7 +395,7 @@ public class StatisticsViewModel : ObservableObject
             new Axis
             {
                 MinLimit = 0,
-                LabelsPaint = new SolidColorPaint(SKColors.Black),
+                LabelsPaint = new SolidColorPaint(SKColors.Black) { SKTypeface = ChineseTypeface },
                 SeparatorsPaint = new SolidColorPaint(new SKColor(200, 210, 220)) { StrokeThickness = 1 }
             }
         };
@@ -453,7 +456,7 @@ public class StatisticsViewModel : ObservableObject
             new Axis
             {
                 Labels = allPersons.ToArray(),
-                LabelsPaint = new SolidColorPaint(SKColors.Black),
+                LabelsPaint = new SolidColorPaint(SKColors.Black) { SKTypeface = ChineseTypeface },
                 SeparatorsPaint = new SolidColorPaint(new SKColor(200, 210, 220)) { StrokeThickness = 1 }
             }
         };
@@ -463,7 +466,7 @@ public class StatisticsViewModel : ObservableObject
             new Axis
             {
                 MinLimit = 0,
-                LabelsPaint = new SolidColorPaint(SKColors.Black),
+                LabelsPaint = new SolidColorPaint(SKColors.Black) { SKTypeface = ChineseTypeface },
                 SeparatorsPaint = new SolidColorPaint(new SKColor(200, 210, 220)) { StrokeThickness = 1 }
             }
         };

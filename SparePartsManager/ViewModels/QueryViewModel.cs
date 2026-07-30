@@ -2,6 +2,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using SparePartsManager.Data;
 using SparePartsManager.Models;
+using SparePartsManager.Services;
 using SqlSugar;
 using System.Collections.ObjectModel;
 using System.Linq;
@@ -34,33 +35,10 @@ public class QueryViewModel : ObservableObject
 {
     // ========== 下拉框选项 ==========
 
-    private ObservableCollection<string> _specOptions = new();
-    public ObservableCollection<string> SpecOptions
-    {
-        get => _specOptions;
-        set => SetProperty(ref _specOptions, value);
-    }
-
-    private ObservableCollection<string> _modelOptions = new();
-    public ObservableCollection<string> ModelOptions
-    {
-        get => _modelOptions;
-        set => SetProperty(ref _modelOptions, value);
-    }
-
-    private ObservableCollection<string> _manufacturerOptions = new();
-    public ObservableCollection<string> ManufacturerOptions
-    {
-        get => _manufacturerOptions;
-        set => SetProperty(ref _manufacturerOptions, value);
-    }
-
-    private ObservableCollection<string> _projectOptions = new();
-    public ObservableCollection<string> ProjectOptions
-    {
-        get => _projectOptions;
-        set => SetProperty(ref _projectOptions, value);
-    }
+    public ObservableCollection<string> SpecOptions => DropdownDataService.Instance.Specifications;
+    public ObservableCollection<string> ModelOptions => DropdownDataService.Instance.Models;
+    public ObservableCollection<string> ManufacturerOptions => DropdownDataService.Instance.Manufacturers;
+    public ObservableCollection<string> ProjectOptions => DropdownDataService.Instance.Projects;
 
     // ========== 搜索字段 ==========
 
@@ -260,53 +238,10 @@ public class QueryViewModel : ObservableObject
         NextPageCommand = new RelayCommand(NextPage, () => CurrentPage < TotalPages);
         LastPageCommand = new RelayCommand(LastPage, () => CurrentPage < TotalPages);
 
-        LoadDropdownOptions();
+        DropdownDataService.Instance.RefreshAll();
         LoadParts();
     }
 
-    private void LoadDropdownOptions()
-    {
-        try
-        {
-            var db = SqlSugarHelper.Db;
-
-            var specs = db.Queryable<SparePart>()
-                .Where(p => p.Specification != null && p.Specification != "")
-                .Select(p => p.Specification)
-                .Distinct()
-                .OrderBy(s => s)
-                .ToList();
-            SpecOptions = new ObservableCollection<string>(specs);
-
-            var models = db.Queryable<SparePart>()
-                .Where(p => p.Model != null && p.Model != "")
-                .Select(p => p.Model)
-                .Distinct()
-                .OrderBy(s => s)
-                .ToList();
-            ModelOptions = new ObservableCollection<string>(models);
-
-            var manufacturers = db.Queryable<SparePart>()
-                .Where(p => p.Manufacturer != null && p.Manufacturer != "")
-                .Select(p => p.Manufacturer)
-                .Distinct()
-                .OrderBy(s => s)
-                .ToList();
-            ManufacturerOptions = new ObservableCollection<string>(manufacturers);
-
-            var projects = db.Queryable<SparePart>()
-                .Where(p => p.ProjectName != null && p.ProjectName != "")
-                .Select(p => p.ProjectName)
-                .Distinct()
-                .OrderBy(s => s)
-                .ToList();
-            ProjectOptions = new ObservableCollection<string>(projects);
-        }
-        catch
-        {
-            // 忽略加载下拉选项时的错误
-        }
-    }
 
     private void FirstPage() { CurrentPage = 1; LoadParts(); }
     private void PrevPage() { if (CurrentPage > 1) { CurrentPage--; LoadParts(); } }

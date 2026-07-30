@@ -11,6 +11,7 @@ public partial class LoginWindow : Window
     public LoginWindow()
     {
         InitializeComponent();
+        DataContext = new LoginViewModel();
     }
 
     private void TitleBar_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)

@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.Input;
 using SparePartsManager.Data;
 using SparePartsManager.Models;
 using SparePartsManager.Services;
+using SparePartsManager.Views;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Windows;
@@ -90,10 +91,21 @@ public class StockInViewModel : ObservableObject
 
     public string StockInPerson => CurrentUser.LoginUser?.RealName ?? "";
 
-    public ObservableCollection<string> Specifications { get; } = new ObservableCollection<string>();
-    public ObservableCollection<string> Projects { get; } = new ObservableCollection<string>();
+    // ========== 共享下拉数据源 ==========
+
+    public ObservableCollection<string> Specifications => DropdownDataService.Instance.Specifications;
+    public ObservableCollection<string> Models => DropdownDataService.Instance.Models;
+    public ObservableCollection<string> Manufacturers => DropdownDataService.Instance.Manufacturers;
+    public ObservableCollection<string> Projects => DropdownDataService.Instance.Projects;
+
+    private static Window? GetOwnerWindow()
+    {
+        return Application.Current.Windows.OfType<Window>().FirstOrDefault(w => w.IsVisible);
+    }
 
     public RelayCommand AddSpecCommand { get; }
+    public RelayCommand AddModelCommand { get; }
+    public RelayCommand AddManufacturerCommand { get; }
     public RelayCommand AddProjectCommand { get; }
     public RelayCommand SaveCommand { get; }
     public RelayCommand ClearCommand { get; }
@@ -101,42 +113,22 @@ public class StockInViewModel : ObservableObject
     public StockInViewModel()
     {
         AddSpecCommand = new RelayCommand(AddSpec);
+        AddModelCommand = new RelayCommand(AddModel);
+        AddManufacturerCommand = new RelayCommand(AddManufacturer);
         AddProjectCommand = new RelayCommand(AddProject);
         SaveCommand = new RelayCommand(Save);
         ClearCommand = new RelayCommand(ClearForm);
 
-        LoadSpecs();
-        LoadProjects();
-    }
-
-    private void LoadSpecs()
-    {
-        try
-        {
-            var specs = SqlSugarHelper.Db.Queryable<Specification>().Select(s => s.Name).ToList();
-            Specifications.Clear();
-            foreach (var s in specs)
-                if (!string.IsNullOrEmpty(s)) Specifications.Add(s);
-        }
-        catch { }
-    }
-
-    private void LoadProjects()
-    {
-        try
-        {
-            var projects = SqlSugarHelper.Db.Queryable<Project>().Select(p => p.Name).ToList();
-            Projects.Clear();
-            foreach (var p in projects)
-                if (!string.IsNullOrEmpty(p)) Projects.Add(p);
-        }
-        catch { }
+        DropdownDataService.Instance.RefreshAll();
     }
 
     private void AddSpec()
     {
-        var input = Microsoft.VisualBasic.Interaction.InputBox("请输入新规格名称：", "新增规格", "");
-        var name = input?.Trim();
+        var dialog = new InputDialog("新增规格", "请输入新规格名称：");
+        dialog.Owner = GetOwnerWindow();
+        if (dialog.ShowDialog() != true) return;
+
+        var name = dialog.InputText.Trim();
         if (string.IsNullOrEmpty(name)) return;
 
         try
@@ -148,8 +140,56 @@ public class StockInViewModel : ObservableObject
                 return;
             }
             db.Insertable(new Specification { Name = name }).ExecuteCommand();
-            LoadSpecs();
+            DropdownDataService.Instance.RefreshAll();
             Specification = name;
+        }
+        catch (System.Exception ex)
+        {
+            MessageBox.Show($"新增失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    private void AddModel()
+    {
+        var dialog = new InputDialog("新增型号", "请输入新型号：");
+        dialog.Owner = GetOwnerWindow();
+        if (dialog.ShowDialog() != true) return;
+
+        var name = dialog.InputText.Trim();
+        if (string.IsNullOrEmpty(name)) return;
+
+        try
+        {
+            var db = SqlSugarHelper.Db;
+            // 直接刷新列表，型号不单独建字典表，只需刷新下拉选项
+            DropdownDataService.Instance.RefreshAll();
+            if (!Models.Contains(name))
+                Models.Add(name);
+            Model = name;
+        }
+        catch (System.Exception ex)
+        {
+            MessageBox.Show($"新增失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    private void AddManufacturer()
+    {
+        var dialog = new InputDialog("新增厂家", "请输入新厂家名称：");
+        dialog.Owner = GetOwnerWindow();
+        if (dialog.ShowDialog() != true) return;
+
+        var name = dialog.InputText.Trim();
+        if (string.IsNullOrEmpty(name)) return;
+
+        try
+        {
+            var db = SqlSugarHelper.Db;
+            // 直接刷新列表，厂家不单独建字典表
+            DropdownDataService.Instance.RefreshAll();
+            if (!Manufacturers.Contains(name))
+                Manufacturers.Add(name);
+            Manufacturer = name;
         }
         catch (System.Exception ex)
         {
@@ -159,8 +199,11 @@ public class StockInViewModel : ObservableObject
 
     private void AddProject()
     {
-        var input = Microsoft.VisualBasic.Interaction.InputBox("请输入新项目名称：", "新增项目", "");
-        var name = input?.Trim();
+        var dialog = new InputDialog("新增项目", "请输入新项目名称：");
+        dialog.Owner = GetOwnerWindow();
+        if (dialog.ShowDialog() != true) return;
+
+        var name = dialog.InputText.Trim();
         if (string.IsNullOrEmpty(name)) return;
 
         try
@@ -172,7 +215,7 @@ public class StockInViewModel : ObservableObject
                 return;
             }
             db.Insertable(new Project { Name = name }).ExecuteCommand();
-            LoadProjects();
+            DropdownDataService.Instance.RefreshAll();
             ProjectName = name;
         }
         catch (System.Exception ex)
@@ -256,8 +299,7 @@ public class StockInViewModel : ObservableObject
 
             MessageBox.Show($"入库成功！共 {Quantity} 件。", "成功", MessageBoxButton.OK, MessageBoxImage.Information);
             ClearForm();
-            LoadSpecs();
-            LoadProjects();
+            DropdownDataService.Instance.RefreshAll();
         }
         catch (System.Exception ex)
         {

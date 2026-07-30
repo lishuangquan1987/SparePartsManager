@@ -1,3 +1,5 @@
 .reasonix/
 SparePartsManager/bin/
 reasonix.toml
+.idea/
+SparePartsManager/obj/
