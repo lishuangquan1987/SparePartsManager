@@ -100,10 +100,14 @@
                                     YAxes="{Binding YAxes}"
                                     ZoomMode="None"
                                     TooltipPosition="Top"
+                                    TooltipTextPaint="{Binding TooltipTextPaint}"
+                                    TooltipBackgroundPaint="{Binding TooltipBackgroundPaint}"
                                     Visibility="{Binding IsPieChart, Converter={StaticResource InvertedBoolToVis}}"/>
 
                 <lvc:PieChart Series="{Binding Series}"
                               TooltipPosition="Top"
+                              TooltipTextPaint="{Binding TooltipTextPaint}"
+                              TooltipBackgroundPaint="{Binding TooltipBackgroundPaint}"
                               Visibility="{Binding IsPieChart, Converter={StaticResource BooleanToVisibilityConverter}}"/>
             </Grid>
         </Border>

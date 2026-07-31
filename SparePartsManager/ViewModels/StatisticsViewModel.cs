@@ -38,6 +38,15 @@ public class StatisticsViewModel : ObservableObject
     /// <summary>SkiaSharp 渲染中文字体（Windows 微软雅黑）</summary>
     private static readonly SKTypeface ChineseTypeface = SKTypeface.FromFamilyName("Microsoft YaHei");
 
+    /// <summary>Tooltip 文字画笔（解决默认 SkiaSharp 字体不渲染中文导致的乱码）</summary>
+    public SolidColorPaint TooltipTextPaint { get; } = new SolidColorPaint(SKColors.White)
+    {
+        SKTypeface = SKTypeface.FromFamilyName("Microsoft YaHei")
+    };
+
+    /// <summary>Tooltip 背景画笔</summary>
+    public SolidColorPaint TooltipBackgroundPaint { get; } = new SolidColorPaint(new SKColor(40, 40, 40));
+
     private DateTime _startDate = DateTime.Now.AddMonths(-6);
     public DateTime StartDate
     {

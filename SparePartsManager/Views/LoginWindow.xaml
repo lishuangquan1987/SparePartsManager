@@ -34,10 +34,10 @@
                          Height="32" FontSize="14" Padding="8,4" Margin="0,0,0,12"/>
 
                 <TextBlock Text="密码" FontSize="13" Foreground="#555" Margin="0,0,0,4"/>
-                <PasswordBox x:Name="PasswordBox" Height="32" Margin="0,0,0,20"/>
+                <PasswordBox x:Name="PasswordBox" Padding="8,4" Height="32" Margin="0,0,0,20"/>
 
                 <Button Content="登 录" Height="38" FontSize="15" FontWeight="Bold"
-                        Background="#007ACC" Foreground="White" BorderThickness="0"
+                        Background="#007ACC"  Foreground="White" BorderThickness="0"
                         IsDefault="True"
                         Click="LoginButton_Click"/>
 

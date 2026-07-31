@@ -22,7 +22,7 @@
 
         <!-- 可折叠筛选面板 -->
         <Border Grid.Row="1" Background="#F5F5FA" CornerRadius="4" Margin="0,0,0,8" Padding="0">
-            <Expander Header="筛选条件" Background="Transparent" IsExpanded="False"
+            <Expander Header="筛选条件" Background="Transparent" IsExpanded="True"
                       FontSize="13" FontWeight="SemiBold" Foreground="#444">
                 <ScrollViewer MaxHeight="380" VerticalScrollBarVisibility="Auto">
                     <Border Padding="10,8">
