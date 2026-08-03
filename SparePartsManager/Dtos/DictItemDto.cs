@@ -1,10 +1,10 @@
-namespace SparePartsManager.Models;
+namespace SparePartsManager.Dtos;
 
 /// <summary>
-/// 下拉框绑定的字典项（Id + Name），用于 ComboBox 的
+/// 字典项数据传输对象（Id + Name），用于 ComboBox 的
 /// SelectedValuePath="Id" / DisplayMemberPath="Name" 绑定。
 /// </summary>
-public class DictItem
+public class DictItemDto
 {
     public int Id { get; set; }
     public string Name { get; set; } = string.Empty;

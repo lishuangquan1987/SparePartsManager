@@ -1,6 +1,7 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using SparePartsManager.Data;
+using SparePartsManager.Dtos;
 using SparePartsManager.Models;
 using SqlSugar;
 using System.Collections.ObjectModel;
@@ -19,6 +20,18 @@ public class AlertItemViewModel
     public int Threshold { get; set; }
     public int CurrentStock { get; set; }
     public bool IsWarning => CurrentStock < Threshold;
+
+    /// <summary>DTO → VO（库存警告列表展示对象）。</summary>
+    public static AlertItemViewModel FromDto(StockAlertDto dto) => new()
+    {
+        Id = dto.Id,
+        SpecificationId = dto.SpecificationId,
+        ModelId = dto.ModelId,
+        Specification = dto.SpecificationName,
+        Model = dto.ModelName,
+        Threshold = dto.Threshold,
+        CurrentStock = dto.CurrentStock
+    };
 }
 
 public class StockAlertViewModel : ObservableObject
@@ -58,9 +71,11 @@ public class StockAlertViewModel : ObservableObject
             var specDict = db.Queryable<Specification>().ToList().ToDictionary(s => s.Id, s => s.Name);
             var modelDict = db.Queryable<PartModel>().ToList().ToDictionary(m => m.Id, m => m.Name);
 
-            var rows = db.Queryable<StockAlert>()
+            // entities → dto → vo（三层：StockAlert Entity → DTO(含字典名称) → 展示 VO）
+            // CurrentStock 通过 SqlFunc 子查询在一次 SQL 中计算，避免 N+1 查询
+            var dtos = db.Queryable<StockAlert>()
                 .OrderBy(a => a.SpecificationId)
-                .Select(a => new AlertItemViewModel
+                .Select(a => new StockAlertDto
                 {
                     Id = a.Id,
                     SpecificationId = a.SpecificationId,
@@ -75,19 +90,11 @@ public class StockAlertViewModel : ObservableObject
                 .ToList();
 
             Alerts.Clear();
-            foreach (var a in rows)
+            foreach (var dto in dtos)
             {
-                string specName = "";
-                if (a.SpecificationId.HasValue && specDict.TryGetValue(a.SpecificationId.Value, out var sn))
-                    specName = sn;
-                a.Specification = specName;
-
-                string modelName = "";
-                if (a.ModelId.HasValue && modelDict.TryGetValue(a.ModelId.Value, out var mn))
-                    modelName = mn;
-                a.Model = modelName;
-
-                Alerts.Add(a);
+                dto.SpecificationName = dto.SpecificationId.HasValue && specDict.TryGetValue(dto.SpecificationId.Value, out var sn) ? sn : "";
+                dto.ModelName = dto.ModelId.HasValue && modelDict.TryGetValue(dto.ModelId.Value, out var mn) ? mn : "";
+                Alerts.Add(AlertItemViewModel.FromDto(dto));
             }
         }
         catch (System.Exception ex)

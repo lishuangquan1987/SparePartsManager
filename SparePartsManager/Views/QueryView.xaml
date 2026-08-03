@@ -154,6 +154,9 @@
                 <Button Content="导出" Height="32" FontSize="12"
                         Background="#28A745" Foreground="White" BorderThickness="0"
                         Command="{Binding ExportCommand}" Margin="8,0,0,0" Padding="16,0"/>
+                <Button Content="导入" Height="32" FontSize="12"
+                        Background="#17A2B8" Foreground="White" BorderThickness="0"
+                        Command="{Binding ImportCommand}" Margin="8,0,0,0" Padding="16,0"/>
             </StackPanel>
         </Border>
 

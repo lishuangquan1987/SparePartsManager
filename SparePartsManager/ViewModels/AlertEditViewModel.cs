@@ -1,6 +1,7 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using SparePartsManager.Data;
+using SparePartsManager.Dtos;
 using SparePartsManager.Models;
 using SparePartsManager.Services;
 using System.Collections.ObjectModel;
@@ -49,8 +50,8 @@ public class AlertEditViewModel : ObservableObject
         set => SetProperty(ref _threshold, value);
     }
 
-    public ObservableCollection<DictItem> SpecOptions => DropdownDataService.Instance.Specifications;
-    public ObservableCollection<DictItem> ModelOptions => DropdownDataService.Instance.Models;
+    public ObservableCollection<DictItemDto> SpecOptions => DropdownDataService.Instance.Specifications;
+    public ObservableCollection<DictItemDto> ModelOptions => DropdownDataService.Instance.Models;
 
     public RelayCommand SaveCommand { get; }
     public RelayCommand CancelCommand { get; }

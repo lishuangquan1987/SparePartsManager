@@ -1,6 +1,7 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using SparePartsManager.Data;
+using SparePartsManager.Dtos;
 using SparePartsManager.Models;
 using SparePartsManager.Services;
 using System.Collections.ObjectModel;
@@ -77,10 +78,10 @@ public class SparePartEditViewModel : ObservableObject
 
     // ========== 共享下拉数据源（只读选择，不可新增） ==========
 
-    public ObservableCollection<DictItem> Specifications => DropdownDataService.Instance.Specifications;
-    public ObservableCollection<DictItem> Models => DropdownDataService.Instance.Models;
-    public ObservableCollection<DictItem> Manufacturers => DropdownDataService.Instance.Manufacturers;
-    public ObservableCollection<DictItem> Projects => DropdownDataService.Instance.Projects;
+    public ObservableCollection<DictItemDto> Specifications => DropdownDataService.Instance.Specifications;
+    public ObservableCollection<DictItemDto> Models => DropdownDataService.Instance.Models;
+    public ObservableCollection<DictItemDto> Manufacturers => DropdownDataService.Instance.Manufacturers;
+    public ObservableCollection<DictItemDto> Projects => DropdownDataService.Instance.Projects;
 
     public RelayCommand SaveCommand { get; }
     public RelayCommand CancelCommand { get; }
@@ -127,19 +128,33 @@ public class SparePartEditViewModel : ObservableObject
         try
         {
             var db = SqlSugarHelper.Db;
-            db.Updateable<SparePart>()
-                .SetColumns(it => new SparePart
-                {
-                    Name = name,
-                    SpecificationId = SpecificationId.Value,
-                    ModelId = ModelId.Value,
-                    ManufacturerId = ManufacturerId,
-                    ProjectId = ProjectId,
-                    ShelfNo = ShelfNo,
-                    LayerNo = LayerNo,
-                    PositionNo = PositionNo,
-                    Remark = (Remark ?? "").Trim()
-                }).Where(it => it.Id == _partId).ExecuteCommand();
+            var part = db.Queryable<SparePart>().InSingle(_partId);
+            if (part == null) return;
+
+            // vo → dto → entities（写入链路分层）
+            var dto = new SparePartDto
+            {
+                Id = _partId,
+                Name = name,
+                SpecificationId = SpecificationId,
+                ModelId = ModelId,
+                ManufacturerId = ManufacturerId,
+                ProjectId = ProjectId,
+                ShelfNo = ShelfNo,
+                LayerNo = LayerNo,
+                PositionNo = PositionNo,
+                Remark = (Remark ?? "").Trim()
+            };
+            var updated = EntityMapper.ToSparePartEntity(dto);
+
+            // 保留本窗口未编辑的字段（入库/出库信息、状态）
+            updated.StockInDate = part.StockInDate;
+            updated.StockOutDate = part.StockOutDate;
+            updated.StockInPerson = part.StockInPerson;
+            updated.StockOutPerson = part.StockOutPerson;
+            updated.Status = part.Status;
+
+            db.Updateable(updated).ExecuteCommand();
 
             RequestClose?.Invoke(this, true);
         }

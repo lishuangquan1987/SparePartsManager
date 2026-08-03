@@ -1,6 +1,7 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using SparePartsManager.Data;
+using SparePartsManager.Dtos;
 using SparePartsManager.Models;
 using SparePartsManager.Services;
 using System.Collections.ObjectModel;
@@ -30,16 +31,33 @@ public class StockOutItemViewModel : ObservableObject
         get => _isSelected;
         set => SetProperty(ref _isSelected, value);
     }
+
+    /// <summary>DTO → VO（出库列表展示对象）。</summary>
+    public static StockOutItemViewModel FromDto(SparePartDto dto) => new()
+    {
+        Id = dto.Id,
+        Name = dto.Name,
+        Specification = dto.SpecificationName,
+        Model = dto.ModelName,
+        Manufacturer = dto.ManufacturerName,
+        ProjectName = string.IsNullOrEmpty(dto.ProjectName) ? null : dto.ProjectName,
+        ShelfNo = dto.ShelfNo,
+        LayerNo = dto.LayerNo,
+        PositionNo = dto.PositionNo,
+        StockInDate = dto.StockInDate,
+        StockInPerson = dto.StockInPerson,
+        Remark = dto.Remark
+    };
 }
 
 public class StockOutViewModel : ObservableObject
 {
     // ========== 下拉框选项（委托到共享服务，只读选择） ==========
 
-    public ObservableCollection<DictItem> SpecOptions => DropdownDataService.Instance.Specifications;
-    public ObservableCollection<DictItem> ModelOptions => DropdownDataService.Instance.Models;
-    public ObservableCollection<DictItem> ManufacturerOptions => DropdownDataService.Instance.Manufacturers;
-    public ObservableCollection<DictItem> ProjectOptions => DropdownDataService.Instance.Projects;
+    public ObservableCollection<DictItemDto> SpecOptions => DropdownDataService.Instance.Specifications;
+    public ObservableCollection<DictItemDto> ModelOptions => DropdownDataService.Instance.Models;
+    public ObservableCollection<DictItemDto> ManufacturerOptions => DropdownDataService.Instance.Manufacturers;
+    public ObservableCollection<DictItemDto> ProjectOptions => DropdownDataService.Instance.Projects;
 
     // ========== 搜索字段 ==========
 
@@ -257,24 +275,12 @@ public class StockOutViewModel : ObservableObject
                 .Take(PageSize)
                 .ToList();
 
+            // entities → dto → vo（三层：Entity → DTO(含字典名称) → 展示 VO）
             Parts.Clear();
             foreach (var p in parts)
             {
-                Parts.Add(new StockOutItemViewModel
-                {
-                    Id = p.Id,
-                    Name = p.Name,
-                    Specification = p.SpecificationId.HasValue && specDict.TryGetValue(p.SpecificationId.Value, out var sn) ? sn : "",
-                    Model = p.ModelId.HasValue && modelDict.TryGetValue(p.ModelId.Value, out var mn) ? mn : "",
-                    Manufacturer = p.ManufacturerId.HasValue && manDict.TryGetValue(p.ManufacturerId.Value, out var man) ? man : "",
-                    ProjectName = p.ProjectId.HasValue && projDict.TryGetValue(p.ProjectId.Value, out var proj) ? proj : null,
-                    ShelfNo = p.ShelfNo,
-                    LayerNo = p.LayerNo,
-                    PositionNo = p.PositionNo,
-                    StockInDate = p.StockInDate,
-                    StockInPerson = p.StockInPerson,
-                    Remark = p.Remark
-                });
+                var dto = EntityMapper.ToSparePartDto(p, specDict, modelDict, manDict, projDict);
+                Parts.Add(StockOutItemViewModel.FromDto(dto));
             }
         }
         catch (Exception ex)

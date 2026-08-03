@@ -1,6 +1,7 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using SparePartsManager.Data;
+using SparePartsManager.Dtos;
 using SparePartsManager.Models;
 using SparePartsManager.Services;
 using System.Collections.ObjectModel;
@@ -92,10 +93,10 @@ public class StockInViewModel : ObservableObject
 
     // ========== 共享下拉数据源（只读选择，不可新增） ==========
 
-    public ObservableCollection<DictItem> Specifications => DropdownDataService.Instance.Specifications;
-    public ObservableCollection<DictItem> Models => DropdownDataService.Instance.Models;
-    public ObservableCollection<DictItem> Manufacturers => DropdownDataService.Instance.Manufacturers;
-    public ObservableCollection<DictItem> Projects => DropdownDataService.Instance.Projects;
+    public ObservableCollection<DictItemDto> Specifications => DropdownDataService.Instance.Specifications;
+    public ObservableCollection<DictItemDto> Models => DropdownDataService.Instance.Models;
+    public ObservableCollection<DictItemDto> Manufacturers => DropdownDataService.Instance.Manufacturers;
+    public ObservableCollection<DictItemDto> Projects => DropdownDataService.Instance.Projects;
 
     public RelayCommand SaveCommand { get; }
     public RelayCommand ClearCommand { get; }
@@ -108,7 +109,7 @@ public class StockInViewModel : ObservableObject
         DropdownDataService.Instance.RefreshAll();
     }
 
-    private static string GetName(ObservableCollection<DictItem> items, int? id)
+    private static string GetName(ObservableCollection<DictItemDto> items, int? id)
     {
         if (!id.HasValue) return "";
         var item = items.FirstOrDefault(i => i.Id == id.Value);
@@ -140,10 +141,11 @@ public class StockInViewModel : ObservableObject
         {
             var db = SqlSugarHelper.Db;
 
-            var baseData = new SparePart
+            // vo → dto → entities（写入链路分层）
+            var dto = new SparePartDto
             {
-                SpecificationId = SpecificationId.Value,
-                ModelId = ModelId.Value,
+                SpecificationId = SpecificationId,
+                ModelId = ModelId,
                 ManufacturerId = ManufacturerId,
                 ProjectId = ProjectId,
                 ShelfNo = ShelfNo,
@@ -154,6 +156,7 @@ public class StockInViewModel : ObservableObject
                 Remark = Remark.Trim(),
                 Status = "InStock"
             };
+            var baseData = EntityMapper.ToSparePartEntity(dto);
 
             if (Quantity == 1)
             {

@@ -1,6 +1,7 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using SparePartsManager.Data;
+using SparePartsManager.Dtos;
 using SparePartsManager.Models;
 using SparePartsManager.Services;
 using SqlSugar;
@@ -29,16 +30,37 @@ public class QueryItemViewModel
     public string? ProjectName { get; set; }
     public bool IsLowStock { get; set; }
     public string StatusDisplay => Status == "InStock" ? "在库" : "已出库";
+
+    /// <summary>DTO → VO（查询展示对象）。</summary>
+    public static QueryItemViewModel FromDto(SparePartDto dto, bool isLowStock) => new()
+    {
+        Id = dto.Id,
+        Name = dto.Name,
+        Specification = dto.SpecificationName,
+        Model = dto.ModelName,
+        Manufacturer = dto.ManufacturerName,
+        ProjectName = string.IsNullOrEmpty(dto.ProjectName) ? null : dto.ProjectName,
+        ShelfNo = dto.ShelfNo,
+        LayerNo = dto.LayerNo,
+        PositionNo = dto.PositionNo,
+        StockInDate = dto.StockInDate,
+        StockOutDate = dto.StockOutDate,
+        StockInPerson = dto.StockInPerson,
+        StockOutPerson = dto.StockOutPerson,
+        Status = dto.Status,
+        Remark = dto.Remark,
+        IsLowStock = isLowStock
+    };
 }
 
 public class QueryViewModel : ObservableObject
 {
     // ========== 下拉框选项（只读选择） ==========
 
-    public ObservableCollection<DictItem> SpecOptions => DropdownDataService.Instance.Specifications;
-    public ObservableCollection<DictItem> ModelOptions => DropdownDataService.Instance.Models;
-    public ObservableCollection<DictItem> ManufacturerOptions => DropdownDataService.Instance.Manufacturers;
-    public ObservableCollection<DictItem> ProjectOptions => DropdownDataService.Instance.Projects;
+    public ObservableCollection<DictItemDto> SpecOptions => DropdownDataService.Instance.Specifications;
+    public ObservableCollection<DictItemDto> ModelOptions => DropdownDataService.Instance.Models;
+    public ObservableCollection<DictItemDto> ManufacturerOptions => DropdownDataService.Instance.Manufacturers;
+    public ObservableCollection<DictItemDto> ProjectOptions => DropdownDataService.Instance.Projects;
 
     // ========== 搜索字段 ==========
 
@@ -222,6 +244,7 @@ public class QueryViewModel : ObservableObject
     public RelayCommand ResetCommand { get; }
     public RelayCommand EditCommand { get; }
     public RelayCommand ExportCommand { get; }
+    public RelayCommand ImportCommand { get; }
     public RelayCommand FirstPageCommand { get; }
     public RelayCommand PrevPageCommand { get; }
     public RelayCommand NextPageCommand { get; }
@@ -233,6 +256,7 @@ public class QueryViewModel : ObservableObject
         ResetCommand = new RelayCommand(Reset);
         EditCommand = new RelayCommand(EditPart);
         ExportCommand = new RelayCommand(Export);
+        ImportCommand = new RelayCommand(Import);
         FirstPageCommand = new RelayCommand(FirstPage, () => CurrentPage > 1);
         PrevPageCommand = new RelayCommand(PrevPage, () => CurrentPage > 1);
         NextPageCommand = new RelayCommand(NextPage, () => CurrentPage < TotalPages);
@@ -316,32 +340,16 @@ public class QueryViewModel : ObservableObject
             var manDict = db.Queryable<Manufacturer>().ToList().ToDictionary(m => m.Id, m => m.Name);
             var projDict = db.Queryable<Project>().ToList().ToDictionary(p => p.Id, p => p.Name);
 
+            // entities → dto → vo（三层：Entity → DTO(含字典名称) → 展示 VO）
             Parts.Clear();
             foreach (var p in parts)
             {
+                var dto = EntityMapper.ToSparePartDto(p, specDict, modelDict, manDict, projDict);
                 var key = $"{p.SpecificationId}|{p.ModelId}";
                 var hasAlert = alertDict.TryGetValue(key, out var threshold);
                 var stockCount = stockCountDict.TryGetValue(key, out var cnt) ? cnt : 0;
 
-                Parts.Add(new QueryItemViewModel
-                {
-                    Id = p.Id,
-                    Name = p.Name,
-                    Specification = p.SpecificationId.HasValue && specDict.TryGetValue(p.SpecificationId.Value, out var sn) ? sn : "",
-                    Model = p.ModelId.HasValue && modelDict.TryGetValue(p.ModelId.Value, out var mn) ? mn : "",
-                    Manufacturer = p.ManufacturerId.HasValue && manDict.TryGetValue(p.ManufacturerId.Value, out var man) ? man : "",
-                    ProjectName = p.ProjectId.HasValue && projDict.TryGetValue(p.ProjectId.Value, out var proj) ? proj : null,
-                    ShelfNo = p.ShelfNo,
-                    LayerNo = p.LayerNo,
-                    PositionNo = p.PositionNo,
-                    StockInDate = p.StockInDate,
-                    StockOutDate = p.StockOutDate,
-                    StockInPerson = p.StockInPerson,
-                    StockOutPerson = p.StockOutPerson,
-                    Status = p.Status,
-                    Remark = p.Remark,
-                    IsLowStock = hasAlert && p.Status == "InStock" && stockCount < threshold
-                });
+                Parts.Add(QueryItemViewModel.FromDto(dto, hasAlert && p.Status == "InStock" && stockCount < threshold));
             }
 
             OnPropertyChanged(nameof(PageInfo));
@@ -391,38 +399,73 @@ public class QueryViewModel : ObservableObject
             LoadParts();
     }
 
+    private void Import()
+    {
+        // 在导入选项对话框内选择 Excel 文件（上方显示已选文件，可更改）
+        var optDlg = new Views.ImportOptionsDialog(CurrentUser.IsAdmin);
+        if (optDlg.ShowDialog() != true) return;
+        if (string.IsNullOrEmpty(optDlg.FilePath)) return; // 未选择文件不允许导入
+
+        try
+        {
+            var result = Services.ExcelService.Import(optDlg.FilePath, optDlg.Options);
+            DropdownDataService.Instance.RefreshAll();
+            LoadParts();
+
+            var msg = $"导入完成：成功 {result.SuccessCount} 行，失败 {result.ErrorCount} 行。";
+            if (result.Errors.Count > 0)
+            {
+                msg += "\n\n错误明细（前 20 条）：\n" + string.Join("\n", result.Errors.Take(20))
+                     + (result.Errors.Count > 20 ? $"\n... 共 {result.Errors.Count} 条" : "");
+            }
+            MessageBox.Show(msg, "导入结果", MessageBoxButton.OK,
+                result.ErrorCount > 0 ? MessageBoxImage.Warning : MessageBoxImage.Information);
+        }
+        catch (System.Exception ex)
+        {
+            MessageBox.Show($"导入失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
     private void Export()
     {
         if (Parts.Count == 0) { MessageBox.Show("无数据可导出。"); return; }
 
         var dlg = new Microsoft.Win32.SaveFileDialog
         {
-            Filter = "CSV 文件|*.csv",
-            FileName = $"备件查询导出_{System.DateTime.Now:yyyyMMdd_HHmmss}.csv"
+            Filter = "Excel 文件|*.xlsx",
+            FileName = $"备件查询导出_{System.DateTime.Now:yyyyMMdd_HHmmss}.xlsx"
         };
         if (dlg.ShowDialog() != true) return;
 
         try
         {
-            using var sw = new System.IO.StreamWriter(dlg.FileName, false, System.Text.Encoding.UTF8);
-            sw.Write('\uFEFF');
-            sw.WriteLine("Id,名称,规格,型号,厂家,项目,货架,层,位,入库日期,出库日期,入库人,出库人,状态,备注");
-            foreach (var p in Parts)
+            // 当前页 VO → DTO → EPPlus 导出 .xlsx（模板与导入一致）
+            var dtos = Parts.Select(p => new SparePartDto
             {
-                sw.WriteLine($"{p.Id},{EscapeCsv(p.Name)},{EscapeCsv(p.Specification)},{EscapeCsv(p.Model)},{EscapeCsv(p.Manufacturer)},{EscapeCsv(p.ProjectName ?? "")},{p.ShelfNo},{p.LayerNo},{p.PositionNo},{p.StockInDate:yyyy-MM-dd},{p.StockOutDate?.ToString("yyyy-MM-dd") ?? ""},{EscapeCsv(p.StockInPerson)},{EscapeCsv(p.StockOutPerson ?? "")},{p.StatusDisplay},{EscapeCsv(p.Remark)}");
-            }
+                Id = p.Id,
+                Name = p.Name,
+                SpecificationName = p.Specification,
+                ModelName = p.Model,
+                ManufacturerName = p.Manufacturer,
+                ProjectName = p.ProjectName ?? "",
+                ShelfNo = p.ShelfNo,
+                LayerNo = p.LayerNo,
+                PositionNo = p.PositionNo,
+                StockInDate = p.StockInDate,
+                StockOutDate = p.StockOutDate,
+                StockInPerson = p.StockInPerson,
+                StockOutPerson = p.StockOutPerson,
+                Status = p.Status,
+                Remark = p.Remark
+            }).ToList();
+
+            Services.ExcelService.ExportXlsx(dlg.FileName, dtos);
             MessageBox.Show($"导出成功！\n{dlg.FileName}", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
         }
         catch (System.Exception ex)
         {
             MessageBox.Show($"导出失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
         }
-    }
-
-    private static string EscapeCsv(string s)
-    {
-        if (s.Contains(',') || s.Contains('"') || s.Contains('\n') || s.Contains('\r'))
-            return $"\"{s.Replace("\"", "\"\"")}\"";
-        return s;
     }
 }
