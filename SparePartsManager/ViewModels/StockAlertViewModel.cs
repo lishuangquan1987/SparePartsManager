@@ -12,6 +12,8 @@ namespace SparePartsManager.ViewModels;
 public class AlertItemViewModel
 {
     public int Id { get; set; }
+    public int? SpecificationId { get; set; }
+    public int? ModelId { get; set; }
     public string Specification { get; set; } = "";
     public string Model { get; set; } = "";
     public int Threshold { get; set; }
@@ -21,6 +23,11 @@ public class AlertItemViewModel
 
 public class StockAlertViewModel : ObservableObject
 {
+    /// <summary>
+    /// 规则列表发生变化（新增/编辑/删除）后触发，供 MainViewModel 重新检查报警。
+    /// </summary>
+    public event Action? AlertsChanged;
+
     public ObservableCollection<AlertItemViewModel> Alerts { get; } = new ObservableCollection<AlertItemViewModel>();
 
     private AlertItemViewModel? _selectedAlert;
@@ -47,24 +54,41 @@ public class StockAlertViewModel : ObservableObject
         try
         {
             var db = SqlSugarHelper.Db;
-            var alerts = db.Queryable<StockAlert>()
-                .OrderBy(a => a.Specification + "|" + a.Model)
+
+            var specDict = db.Queryable<Specification>().ToList().ToDictionary(s => s.Id, s => s.Name);
+            var modelDict = db.Queryable<PartModel>().ToList().ToDictionary(m => m.Id, m => m.Name);
+
+            var rows = db.Queryable<StockAlert>()
+                .OrderBy(a => a.SpecificationId)
                 .Select(a => new AlertItemViewModel
                 {
                     Id = a.Id,
-                    Specification = a.Specification,
-                    Model = a.Model,
+                    SpecificationId = a.SpecificationId,
+                    ModelId = a.ModelId,
                     Threshold = a.Threshold,
                     CurrentStock = SqlFunc.Subqueryable<SparePart>()
-                        .Where(p => p.Specification == a.Specification
-                            && p.Model == a.Model
+                        .Where(p => p.SpecificationId == a.SpecificationId
+                            && p.ModelId == a.ModelId
                             && p.Status == "InStock")
                         .Count()
                 })
                 .ToList();
 
             Alerts.Clear();
-            foreach (var a in alerts) Alerts.Add(a);
+            foreach (var a in rows)
+            {
+                string specName = "";
+                if (a.SpecificationId.HasValue && specDict.TryGetValue(a.SpecificationId.Value, out var sn))
+                    specName = sn;
+                a.Specification = specName;
+
+                string modelName = "";
+                if (a.ModelId.HasValue && modelDict.TryGetValue(a.ModelId.Value, out var mn))
+                    modelName = mn;
+                a.Model = modelName;
+
+                Alerts.Add(a);
+            }
         }
         catch (System.Exception ex)
         {
@@ -76,7 +100,10 @@ public class StockAlertViewModel : ObservableObject
     {
         var window = new Views.AlertEditWindow();
         if (window.ShowDialog() == true)
+        {
             LoadAlerts();
+            AlertsChanged?.Invoke();
+        }
     }
 
     private void Edit()
@@ -95,7 +122,10 @@ public class StockAlertViewModel : ObservableObject
 
             var window = new Views.AlertEditWindow(alert);
             if (window.ShowDialog() == true)
+            {
                 LoadAlerts();
+                AlertsChanged?.Invoke();
+            }
         }
         catch (System.Exception ex)
         {
@@ -121,6 +151,7 @@ public class StockAlertViewModel : ObservableObject
             {
                 SqlSugarHelper.Db.Deleteable<StockAlert>().In(SelectedAlert.Id).ExecuteCommand();
                 LoadAlerts();
+                AlertsChanged?.Invoke();
             }
             catch (System.Exception ex)
             {

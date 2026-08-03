@@ -2,8 +2,8 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using SparePartsManager.Data;
 using SparePartsManager.Models;
+using SparePartsManager.Services;
 using System.Collections.ObjectModel;
-using System.Linq;
 using System.Windows;
 
 namespace SparePartsManager.ViewModels;
@@ -14,11 +14,11 @@ public class AlertEditViewModel : ObservableObject
 
     public string WindowTitle => _editAlert == null ? "新增警告规则" : "编辑警告规则";
 
-    private string _specification = string.Empty;
-    public string Specification
+    private int? _specificationId;
+    public int? SpecificationId
     {
-        get => _specification;
-        set => SetProperty(ref _specification, value);
+        get => _specificationId;
+        set => SetProperty(ref _specificationId, value);
     }
 
     private bool _isSpecEnabled = true;
@@ -28,18 +28,18 @@ public class AlertEditViewModel : ObservableObject
         set => SetProperty(ref _isSpecEnabled, value);
     }
 
-    private string _model = string.Empty;
-    public string Model
+    private int? _modelId;
+    public int? ModelId
     {
-        get => _model;
-        set => SetProperty(ref _model, value);
+        get => _modelId;
+        set => SetProperty(ref _modelId, value);
     }
 
-    private bool _isModelReadOnly;
-    public bool IsModelReadOnly
+    private bool _isModelEnabled = true;
+    public bool IsModelEnabled
     {
-        get => _isModelReadOnly;
-        set => SetProperty(ref _isModelReadOnly, value);
+        get => _isModelEnabled;
+        set => SetProperty(ref _isModelEnabled, value);
     }
 
     private int _threshold = 5;
@@ -49,7 +49,8 @@ public class AlertEditViewModel : ObservableObject
         set => SetProperty(ref _threshold, value);
     }
 
-    public ObservableCollection<string> SpecOptions { get; } = new ObservableCollection<string>();
+    public ObservableCollection<DictItem> SpecOptions => DropdownDataService.Instance.Specifications;
+    public ObservableCollection<DictItem> ModelOptions => DropdownDataService.Instance.Models;
 
     public RelayCommand SaveCommand { get; }
     public RelayCommand CancelCommand { get; }
@@ -60,63 +61,48 @@ public class AlertEditViewModel : ObservableObject
         SaveCommand = new RelayCommand(Save);
         CancelCommand = new RelayCommand(Cancel);
 
-        LoadSpecs();
+        DropdownDataService.Instance.RefreshAll();
 
         if (alert != null)
         {
-            Specification = alert.Specification;
+            SpecificationId = alert.SpecificationId;
             IsSpecEnabled = false;
-            Model = alert.Model;
-            IsModelReadOnly = true;
+            ModelId = alert.ModelId;
+            IsModelEnabled = false;
             Threshold = alert.Threshold;
         }
     }
 
-    private void LoadSpecs()
-    {
-        try
-        {
-            var specs = SqlSugarHelper.Db.Queryable<SparePartsManager.Models.Specification>()
-                .Select(s => s.Name).ToList();
-            SpecOptions.Clear();
-            foreach (var s in specs)
-                if (!string.IsNullOrEmpty(s)) SpecOptions.Add(s);
-        }
-        catch { }
-    }
-
     private void Save()
     {
-        var spec = Specification.Trim();
-        var model = Model.Trim();
-        var threshold = Threshold;
-
-        if (string.IsNullOrEmpty(spec))
+        if (SpecificationId == null)
         {
-            MessageBox.Show("请输入/选择规格。", "提示");
+            MessageBox.Show("请选择规格。", "提示");
             return;
         }
-        if (string.IsNullOrEmpty(model))
+        if (ModelId == null)
         {
-            MessageBox.Show("请输入型号。", "提示");
+            MessageBox.Show("请选择型号。", "提示");
             return;
         }
 
         try
         {
             var db = SqlSugarHelper.Db;
+            var specId = SpecificationId.Value;
+            var modelId = ModelId.Value;
 
             // 拆开闭包引用，避免 SqlSugar 表达式树解析异常
             bool exists;
             if (_editAlert == null)
             {
                 exists = db.Queryable<StockAlert>()
-                    .Any(a => a.Specification == spec && a.Model == model);
+                    .Any(a => a.SpecificationId == specId && a.ModelId == modelId);
             }
             else
             {
                 exists = db.Queryable<StockAlert>()
-                    .Any(a => a.Specification == spec && a.Model == model && a.Id != _editAlert.Id);
+                    .Any(a => a.SpecificationId == specId && a.ModelId == modelId && a.Id != _editAlert.Id);
             }
 
             if (exists)
@@ -129,15 +115,15 @@ public class AlertEditViewModel : ObservableObject
             {
                 db.Insertable(new StockAlert
                 {
-                    Specification = spec,
-                    Model = model,
-                    Threshold = threshold
+                    SpecificationId = specId,
+                    ModelId = modelId,
+                    Threshold = Threshold
                 }).ExecuteCommand();
             }
             else
             {
                 db.Updateable<StockAlert>()
-                    .SetColumns(it => new StockAlert { Threshold = threshold })
+                    .SetColumns(it => new StockAlert { Threshold = Threshold })
                     .Where(it => it.Id == _editAlert.Id)
                     .ExecuteCommand();
             }

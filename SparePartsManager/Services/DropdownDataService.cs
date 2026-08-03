@@ -7,6 +7,7 @@ namespace SparePartsManager.Services;
 /// <summary>
 /// 共享下拉数据源服务（单例）。所有页面共用同一份数据，
 /// 增删改后调用 <see cref="RefreshAll"/> 通知各页面更新。
+/// 数据源：Specifications / PartModels / Manufacturers / Projects 四个字典表。
 /// </summary>
 public sealed class DropdownDataService
 {
@@ -15,66 +16,44 @@ public sealed class DropdownDataService
 
     private readonly object _lock = new();
 
-    public ObservableCollection<string> Specifications { get; } = new();
-    public ObservableCollection<string> Models { get; } = new();
-    public ObservableCollection<string> Manufacturers { get; } = new();
-    public ObservableCollection<string> Projects { get; } = new();
+    public ObservableCollection<DictItem> Specifications { get; } = new();
+    public ObservableCollection<DictItem> Models { get; } = new();
+    public ObservableCollection<DictItem> Manufacturers { get; } = new();
+    public ObservableCollection<DictItem> Projects { get; } = new();
 
     /// <summary>数据源变更时触发，各 ViewModel 订阅后刷新绑定。</summary>
     public event Action? DataChanged;
 
     private DropdownDataService() { }
 
-    /// <summary>从数据库重新加载所有下拉选项。</summary>
+    /// <summary>从四个字典表重新加载所有下拉选项。</summary>
     public void RefreshAll()
     {
         lock (_lock)
         {
             var db = SqlSugarHelper.Db;
 
-            // 规格：Specification 字典表 + SpareParts 已有记录
-            var specsFromDict = db.Queryable<Specification>()
-                .Select(s => s.Name)
-                .ToList();
-            var specsFromParts = db.Queryable<SparePart>()
-                .Where(p => p.Specification != null && p.Specification != "")
-                .Select(p => p.Specification)
-                .ToList();
-            var specs = specsFromDict.Union(specsFromParts)
-                .Where(s => !string.IsNullOrEmpty(s))
-                .OrderBy(s => s)
+            var specs = db.Queryable<Specification>()
+                .OrderBy(s => s.Name)
+                .Select(s => new DictItem { Id = s.Id, Name = s.Name })
                 .ToList();
             RefreshCollection(Specifications, specs);
 
-            // 型号：从 SpareParts 表 DISTINCT（内存排序避免 SQL 语法问题）
-            var models = db.Queryable<SparePart>()
-                .Where(p => p.Model != null && p.Model != "")
-                .Select(p => p.Model)
-                .Distinct()
+            var models = db.Queryable<PartModel>()
+                .OrderBy(m => m.Name)
+                .Select(m => new DictItem { Id = m.Id, Name = m.Name })
                 .ToList();
-            models.Sort();
             RefreshCollection(Models, models);
 
-            // 厂家：从 SpareParts 表 DISTINCT
-            var manufacturers = db.Queryable<SparePart>()
-                .Where(p => p.Manufacturer != null && p.Manufacturer != "")
-                .Select(p => p.Manufacturer)
-                .Distinct()
+            var manufacturers = db.Queryable<Manufacturer>()
+                .OrderBy(m => m.Name)
+                .Select(m => new DictItem { Id = m.Id, Name = m.Name })
                 .ToList();
-            manufacturers.Sort();
             RefreshCollection(Manufacturers, manufacturers);
 
-            // 项目：Project 字典表 + SpareParts 已有记录
-            var projectsFromDict = db.Queryable<Project>()
-                .Select(p => p.Name)
-                .ToList();
-            var projectsFromParts = db.Queryable<SparePart>()
-                .Where(p => p.ProjectName != null && p.ProjectName != "")
-                .Select(p => p.ProjectName)
-                .ToList();
-            var projects = projectsFromDict.Union(projectsFromParts)
-                .Where(s => !string.IsNullOrEmpty(s))
-                .OrderBy(s => s)
+            var projects = db.Queryable<Project>()
+                .OrderBy(p => p.Name)
+                .Select(p => new DictItem { Id = p.Id, Name = p.Name })
                 .ToList();
             RefreshCollection(Projects, projects);
         }
@@ -83,12 +62,12 @@ public sealed class DropdownDataService
     }
 
     /// <summary>复用 ObservableCollection，避免重建导致 UI 绑定断开。</summary>
-    private static void RefreshCollection(ObservableCollection<string> target, List<string> source)
+    private static void RefreshCollection(ObservableCollection<DictItem> target, List<DictItem> source)
     {
         target.Clear();
         foreach (var item in source)
         {
-            if (!string.IsNullOrEmpty(item))
+            if (!string.IsNullOrEmpty(item.Name))
                 target.Add(item);
         }
     }

@@ -33,6 +33,9 @@
         <DataTemplate DataType="{x:Type vm:StockAlertViewModel}">
             <views:StockAlertView />
         </DataTemplate>
+        <DataTemplate DataType="{x:Type vm:BasicDataViewModel}">
+            <views:BasicDataView />
+        </DataTemplate>
         <DataTemplate DataType="{x:Type vm:UserManageViewModel}">
             <views:UserManageView />
         </DataTemplate>
@@ -137,6 +140,11 @@
                             Style="{StaticResource SidebarButtonStyle}" />
                         <Button
                             Command="{Binding NavigateCommand}"
+                            CommandParameter="basicdata"
+                            Content="  基础信息维护"
+                            Style="{StaticResource SidebarButtonStyle}" />
+                        <Button
+                            Command="{Binding NavigateCommand}"
                             CommandParameter="alert"
                             Content="  库存警告"
                             Style="{StaticResource SidebarButtonStyle}" />
@@ -209,16 +217,29 @@
                     FontSize="12"
                     Foreground="White"
                     Text="{Binding StatusText}" />
-                <TextBlock
-                    Grid.Column="2"
-                    MaxWidth="600"
-                    Margin="0,0,12,0"
-                    VerticalAlignment="Center"
-                    FontSize="11"
-                    Foreground="#FFE0E0"
-                    Text="{Binding WarningDetailText}"
-                    TextTrimming="CharacterEllipsis"
-                    Visibility="{Binding HasWarning, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock
+                        MaxWidth="500"
+                        Margin="0,0,8,0"
+                        VerticalAlignment="Center"
+                        FontSize="11"
+                        Foreground="#FFE0E0"
+                        Text="{Binding WarningDetailText}"
+                        TextTrimming="CharacterEllipsis"
+                        Visibility="{Binding HasWarning, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                    <Button
+                        Margin="0,0,12,0"
+                        Padding="10,3"
+                        VerticalAlignment="Center"
+                        Background="#C9302C"
+                        BorderThickness="0"
+                        Command="{Binding DismissWarningCommand}"
+                        Content="消除报警"
+                        Cursor="Hand"
+                        FontSize="11"
+                        Foreground="White"
+                        Visibility="{Binding HasWarning, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                </StackPanel>
             </Grid>
         </Border>
     </Grid>

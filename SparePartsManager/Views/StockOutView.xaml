@@ -57,28 +57,36 @@
                                      Height="24" FontSize="12" Margin="0,4,8,4"/>
 
                             <TextBlock Grid.Row="1" Grid.Column="2" Text="规格：" VerticalAlignment="Center" Margin="4,4,2,4" FontSize="12"/>
-                            <ComboBox Grid.Row="1" Grid.Column="3" IsEditable="True"
+                            <ComboBox Grid.Row="1" Grid.Column="3" IsEditable="False"
                                       ItemsSource="{Binding SpecOptions}"
-                                      Text="{Binding SearchSpecification, UpdateSourceTrigger=PropertyChanged}"
+                                      DisplayMemberPath="Name"
+                                      SelectedValuePath="Id"
+                                      SelectedValue="{Binding SearchSpecificationId}"
                                       Height="24" FontSize="12" Margin="0,4,8,4"/>
 
                             <TextBlock Grid.Row="1" Grid.Column="4" Text="型号：" VerticalAlignment="Center" Margin="4,4,2,4" FontSize="12"/>
-                            <ComboBox Grid.Row="1" Grid.Column="5" IsEditable="True"
+                            <ComboBox Grid.Row="1" Grid.Column="5" IsEditable="False"
                                       ItemsSource="{Binding ModelOptions}"
-                                      Text="{Binding SearchModel, UpdateSourceTrigger=PropertyChanged}"
+                                      DisplayMemberPath="Name"
+                                      SelectedValuePath="Id"
+                                      SelectedValue="{Binding SearchModelId}"
                                       Height="24" FontSize="12" Margin="0,4,0,4"/>
 
                             <!-- Row 2: 厂家、项目、货架 -->
                             <TextBlock Grid.Row="2" Grid.Column="0" Text="厂家：" VerticalAlignment="Center" Margin="4,4,2,4" FontSize="12"/>
-                            <ComboBox Grid.Row="2" Grid.Column="1" IsEditable="True"
+                            <ComboBox Grid.Row="2" Grid.Column="1" IsEditable="False"
                                       ItemsSource="{Binding ManufacturerOptions}"
-                                      Text="{Binding SearchManufacturer, UpdateSourceTrigger=PropertyChanged}"
+                                      DisplayMemberPath="Name"
+                                      SelectedValuePath="Id"
+                                      SelectedValue="{Binding SearchManufacturerId}"
                                       Height="24" FontSize="12" Margin="0,4,8,4"/>
 
                             <TextBlock Grid.Row="2" Grid.Column="2" Text="项目：" VerticalAlignment="Center" Margin="4,4,2,4" FontSize="12"/>
-                            <ComboBox Grid.Row="2" Grid.Column="3" IsEditable="True"
+                            <ComboBox Grid.Row="2" Grid.Column="3" IsEditable="False"
                                       ItemsSource="{Binding ProjectOptions}"
-                                      Text="{Binding SearchProjectName, UpdateSourceTrigger=PropertyChanged}"
+                                      DisplayMemberPath="Name"
+                                      SelectedValuePath="Id"
+                                      SelectedValue="{Binding SearchProjectId}"
                                       Height="24" FontSize="12" Margin="0,4,8,4"/>
 
                             <TextBlock Grid.Row="2" Grid.Column="4" Text="货位：" VerticalAlignment="Center" Margin="4,4,2,4" FontSize="12"/>

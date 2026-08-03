@@ -155,18 +155,18 @@ public class StatisticsViewModel : ObservableObject
         var outCount = db.Queryable<SparePart>().Count(p => p.StockOutDate >= s && p.StockOutDate < e);
         var totalInStock = db.Queryable<SparePart>().Count(p => p.Status == "InStock");
 
-        // 低库存数量：按 "规格|型号" 分组与 StockAlert 阈值比较
+        // 低库存数量：按 "规格ID|型号ID" 分组与 StockAlert 阈值比较
         var stockGroup = db.Queryable<SparePart>()
             .Where(p => p.Status == "InStock")
-            .GroupBy(p => new { p.Specification, p.Model })
-            .Select(g => new { g.Specification, g.Model, Count = SqlFunc.AggregateCount(g.Id) })
+            .GroupBy(p => new { p.SpecificationId, p.ModelId })
+            .Select(g => new { g.SpecificationId, g.ModelId, Count = SqlFunc.AggregateCount(g.Id) })
             .ToList();
 
         var alerts = db.Queryable<StockAlert>().ToList();
-        var alertLookup = alerts.ToLookup(a => $"{a.Specification}|{a.Model}");
+        var alertLookup = alerts.ToLookup(a => $"{a.SpecificationId}|{a.ModelId}");
         var lowStockCount = stockGroup.Count(g =>
         {
-            var key = $"{g.Specification}|{g.Model}";
+            var key = $"{g.SpecificationId}|{g.ModelId}";
             var threshold = alertLookup[key]?.FirstOrDefault()?.Threshold ?? int.MaxValue;
             return g.Count < threshold;
         });
@@ -289,11 +289,17 @@ public class StatisticsViewModel : ObservableObject
         var s = StartDate.Date;
         var e = EndDate.Date.AddDays(1);
 
+        var specDict = db.Queryable<Specification>().ToList().ToDictionary(s => s.Id, s => s.Name);
+
         var specData = db.Queryable<SparePart>()
             .Where(p => p.StockInDate >= s && p.StockInDate < e)
             .ToList()
-            .GroupBy(p => p.Specification)
-            .Select(g => new { Spec = g.Key, Count = g.Count() })
+            .GroupBy(p => p.SpecificationId)
+            .Select(g => new
+            {
+                SpecName = g.Key.HasValue && specDict.TryGetValue(g.Key.Value, out var sn) ? sn : $"(未知ID {g.Key})",
+                Count = g.Count()
+            })
             .OrderByDescending(x => x.Count)
             .ToList();
 
@@ -323,7 +329,7 @@ public class StatisticsViewModel : ObservableObject
             pieSeries.Add(new PieSeries<double>
             {
                 Values = new double[] { specData[idx].Count },
-                Name = specData[idx].Spec,
+                Name = specData[idx].SpecName,
                 Fill = new SolidColorPaint(colors[idx % colors.Length]),
                 Stroke = new SolidColorPaint(SKColors.White) { StrokeThickness = 1 },
                 HoverPushout = 5,
@@ -347,17 +353,19 @@ public class StatisticsViewModel : ObservableObject
         var s = StartDate.Date;
         var e = EndDate.Date.AddDays(1);
 
+        var projDict = db.Queryable<Project>().ToList().ToDictionary(p => p.Id, p => p.Name);
+
         var inData = db.Queryable<SparePart>()
-            .Where(p => p.StockInDate >= s && p.StockInDate < e && p.ProjectName != null && p.ProjectName != "")
+            .Where(p => p.StockInDate >= s && p.StockInDate < e && p.ProjectId != null)
             .ToList()
-            .GroupBy(p => p.ProjectName!)
-            .ToDictionary(g => g.Key, g => g.Count());
+            .GroupBy(p => p.ProjectId!.Value)
+            .ToDictionary(g => projDict.TryGetValue(g.Key, out var pn) ? pn : $"(未知ID {g.Key})", g => g.Count());
 
         var outData = db.Queryable<SparePart>()
-            .Where(p => p.StockOutDate >= s && p.StockOutDate < e && p.ProjectName != null && p.ProjectName != "")
+            .Where(p => p.StockOutDate >= s && p.StockOutDate < e && p.ProjectId != null)
             .ToList()
-            .GroupBy(p => p.ProjectName!)
-            .ToDictionary(g => g.Key, g => g.Count());
+            .GroupBy(p => p.ProjectId!.Value)
+            .ToDictionary(g => projDict.TryGetValue(g.Key, out var pn) ? pn : $"(未知ID {g.Key})", g => g.Count());
 
         var allProjects = inData.Keys.Union(outData.Keys)
             .OrderByDescending(k => inData.GetValueOrDefault(k, 0) + outData.GetValueOrDefault(k, 0))

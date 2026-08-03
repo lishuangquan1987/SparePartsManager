@@ -49,140 +49,20 @@ public static class SqlSugarHelper
             typeof(Models.SparePart),
             typeof(Models.StockAlert),
             typeof(Models.Specification),
-            typeof(Models.Project)
+            typeof(Models.Project),
+            typeof(Models.PartModel),
+            typeof(Models.Manufacturer)
         );
 
-        // 兼容升级：为已存在的表补齐缺失的列
-        EnsureColumns(db);
+        // 初始化字典表默认值（空库时填充常用规格/项目，便于首次使用）
+        InitDefaultSpecifications(db);
+        InitDefaultProjects(db);
 
         // 迁移旧版管理员账户（添加随机盐）
         MigrateAdminSalt(db);
 
         // 初始化默认管理员账户
         InitDefaultAdmin(db);
-    }
-
-    /// <summary>
-    /// 补齐已存在表中缺失的列（兼容旧版本数据库升级）
-    /// </summary>
-    private static void EnsureColumns(ISqlSugarClient db)
-    {
-        try
-        {
-            // 修复旧表 SpareParts 的 StockOutDate NOT NULL 问题
-            FixStockOutDateNotNull(db);
-
-            if (db.DbMaintenance.IsAnyTable("SpareParts", false))
-            {
-                var columns = db.DbMaintenance.GetColumnInfosByTableName("SpareParts", false);
-                var colNames = columns.Select(c => c.DbColumnName.ToLower()).ToHashSet();
-
-                // 新增货位三字段
-                AddColumnIfMissing(db, "SpareParts", "ShelfNo", "INTEGER", 0);
-                AddColumnIfMissing(db, "SpareParts", "LayerNo", "INTEGER", 0);
-                AddColumnIfMissing(db, "SpareParts", "PositionNo", "INTEGER", 0);
-                // 新增项目字段
-                AddColumnIfMissing(db, "SpareParts", "ProjectName", "NVARCHAR(100)", "");
-            }
-
-            // 初始化规格字典表默认值
-            InitDefaultSpecifications(db);
-            // 初始化项目字典表默认值
-            InitDefaultProjects(db);
-
-            if (db.DbMaintenance.IsAnyTable("Users", false))
-            {
-                var cols = db.DbMaintenance.GetColumnInfosByTableName("Users", false);
-                var names = cols.Select(c => c.DbColumnName.ToLower()).ToHashSet();
-                if (!names.Contains("salt"))
-                {
-                    db.DbMaintenance.AddColumn("Users",
-                        new SqlSugar.DbColumnInfo
-                        {
-                            DbColumnName = "Salt",
-                            DataType = "nvarchar(32)",
-                            Length = 32,
-                            IsNullable = true,
-                            DefaultValue = ""
-                        });
-                }
-            }
-        }
-        catch
-        {
-            // 非关键操作，静默失败
-        }
-    }
-
-    /// <summary>
-    /// 修复旧版数据库中 StockOutDate 的 NOT NULL 约束（SQLite 重建表）
-    /// </summary>
-    private static void FixStockOutDateNotNull(ISqlSugarClient db)
-    {
-        try
-        {
-            if (!db.DbMaintenance.IsAnyTable("SpareParts", false))
-                return;
-
-            var columns = db.DbMaintenance.GetColumnInfosByTableName("SpareParts", false);
-            var stockOutCol = columns.FirstOrDefault(c =>
-                c.DbColumnName.Equals("StockOutDate", StringComparison.OrdinalIgnoreCase));
-
-            // 如果列不存在或已经是 NULLABLE，跳过
-            if (stockOutCol == null || stockOutCol.IsNullable)
-                return;
-
-            // SQLite 不支持 ALTER COLUMN 修改约束，需要重建表
-            db.Ado.BeginTran();
-            try
-            {
-                // 1. 创建新表（StockOutDate 可为 NULL）
-                db.Ado.ExecuteCommand(@"
-                    CREATE TABLE SpareParts_new (
-                        Id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        Name NVARCHAR(100) NOT NULL,
-                        Specification NVARCHAR(50) NOT NULL,
-                        Model NVARCHAR(100) NOT NULL,
-                        Manufacturer NVARCHAR(200) NULL,
-                        ShelfNo INTEGER DEFAULT 0,
-                        LayerNo INTEGER DEFAULT 0,
-                        PositionNo INTEGER DEFAULT 0,
-                        StockInDate DATETIME NOT NULL,
-                        StockOutDate DATETIME NULL,
-                        Remark NVARCHAR(500) NULL,
-                        StockInPerson NVARCHAR(50) NULL,
-                        StockOutPerson NVARCHAR(50) NULL,
-                        Status NVARCHAR(20) NOT NULL
-                    )");
-
-                // 2. 复制数据（旧 Location 列忽略，三货位列默认0）
-                db.Ado.ExecuteCommand(
-                    @"INSERT INTO SpareParts_new (Id, Name, Specification, Model, Manufacturer,
-                      ShelfNo, LayerNo, PositionNo, StockInDate, StockOutDate,
-                      Remark, StockInPerson, StockOutPerson, Status)
-                    SELECT Id, Name, Specification, Model, Manufacturer,
-                      0, 0, 0, StockInDate, StockOutDate,
-                      Remark, StockInPerson, StockOutPerson, Status
-                    FROM SpareParts");
-
-                // 3. 删除旧表
-                db.Ado.ExecuteCommand("DROP TABLE SpareParts");
-
-                // 4. 重命名
-                db.Ado.ExecuteCommand("ALTER TABLE SpareParts_new RENAME TO SpareParts");
-
-                db.Ado.CommitTran();
-            }
-            catch
-            {
-                db.Ado.RollbackTran();
-                throw;
-            }
-        }
-        catch
-        {
-            // 修复失败不阻塞启动，下次 CodeFirst.InitTables 会尝试建新表
-        }
     }
 
     private static void InitDefaultAdmin(ISqlSugarClient db)
@@ -242,25 +122,6 @@ public static class SqlSugarHelper
     }
 
     /// <summary>
-    /// 补齐缺失列
-    /// </summary>
-    private static void AddColumnIfMissing(ISqlSugarClient db, string table, string col, string dataType, object defaultValue)
-    {
-        var cols = db.DbMaintenance.GetColumnInfosByTableName(table, false);
-        if (!cols.Any(c => c.DbColumnName.Equals(col, StringComparison.OrdinalIgnoreCase)))
-        {
-            db.DbMaintenance.AddColumn(table,
-                new SqlSugar.DbColumnInfo
-                {
-                    DbColumnName = col,
-                    DataType = dataType,
-                    IsNullable = true,
-                    DefaultValue = defaultValue?.ToString() ?? ""
-                });
-        }
-    }
-
-    /// <summary>
     /// 初始化规格字典默认值
     /// </summary>
     private static void InitDefaultSpecifications(ISqlSugarClient db)
@@ -276,6 +137,7 @@ public static class SqlSugarHelper
         }
         catch { }
     }
+
     /// <summary>
     /// 初始化项目字典默认值
     /// </summary>

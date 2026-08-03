@@ -34,39 +34,6 @@
             <Setter Property="Padding" Value="4,2"/>
             <Setter Property="IsEditable" Value="False"/>
         </Style>
-        <Style x:Key="DialogAddButtonStyle" TargetType="Button">
-            <Setter Property="Width" Value="26"/>
-            <Setter Property="Height" Value="26"/>
-            <Setter Property="VerticalAlignment" Value="Center"/>
-            <Setter Property="Margin" Value="4,0,0,0"/>
-            <Setter Property="FontSize" Value="14"/>
-            <Setter Property="FontWeight" Value="Bold"/>
-            <Setter Property="Foreground" Value="White"/>
-            <Setter Property="Background" Value="#28A745"/>
-            <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Cursor" Value="Hand"/>
-            <Setter Property="Content" Value="+"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="Button">
-                        <Border Background="{TemplateBinding Background}"
-                                CornerRadius="13">
-                            <ContentPresenter HorizontalAlignment="Center"
-                                              VerticalAlignment="Center"
-                                              Content="{TemplateBinding Content}"/>
-                        </Border>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-            <Style.Triggers>
-                <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="#1E7E34"/>
-                </Trigger>
-                <Trigger Property="IsPressed" Value="True">
-                    <Setter Property="Background" Value="#155D27"/>
-                </Trigger>
-            </Style.Triggers>
-        </Style>
         <Style x:Key="DialogSaveButtonStyle" TargetType="Button">
             <Setter Property="Width" Value="110"/>
             <Setter Property="Height" Value="36"/>
@@ -141,69 +108,41 @@
                      Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}"
                      Style="{StaticResource DialogTextBoxStyle}"/>
 
-            <!-- 规格 + 按钮 -->
+            <!-- 规格 -->
             <TextBlock Grid.Row="1" Grid.Column="0" Text="规格：" Style="{StaticResource DialogLabelStyle}"/>
-            <Grid Grid.Row="1" Grid.Column="1" VerticalAlignment="Center">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="Auto"/>
-                </Grid.ColumnDefinitions>
-                <ComboBox Grid.Column="0"
-                          Text="{Binding Specification, UpdateSourceTrigger=PropertyChanged}"
-                          ItemsSource="{Binding Specifications}"
-                          Style="{StaticResource DialogComboBoxStyle}"/>
-                <Button Grid.Column="1"
-                        Command="{Binding AddSpecCommand}"
-                        Style="{StaticResource DialogAddButtonStyle}"/>
-            </Grid>
+            <ComboBox Grid.Row="1" Grid.Column="1"
+                      ItemsSource="{Binding Specifications}"
+                      DisplayMemberPath="Name"
+                      SelectedValuePath="Id"
+                      SelectedValue="{Binding SpecificationId}"
+                      Style="{StaticResource DialogComboBoxStyle}"/>
 
-            <!-- 型号 + 按钮 -->
+            <!-- 型号 -->
             <TextBlock Grid.Row="2" Grid.Column="0" Text="型号：" Style="{StaticResource DialogLabelStyle}"/>
-            <Grid Grid.Row="2" Grid.Column="1" VerticalAlignment="Center">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="Auto"/>
-                </Grid.ColumnDefinitions>
-                <ComboBox Grid.Column="0"
-                          Text="{Binding Model, UpdateSourceTrigger=PropertyChanged}"
-                          ItemsSource="{Binding Models}"
-                          Style="{StaticResource DialogComboBoxStyle}"/>
-                <Button Grid.Column="1"
-                        Command="{Binding AddModelCommand}"
-                        Style="{StaticResource DialogAddButtonStyle}"/>
-            </Grid>
+            <ComboBox Grid.Row="2" Grid.Column="1"
+                      ItemsSource="{Binding Models}"
+                      DisplayMemberPath="Name"
+                      SelectedValuePath="Id"
+                      SelectedValue="{Binding ModelId}"
+                      Style="{StaticResource DialogComboBoxStyle}"/>
 
-            <!-- 厂家 + 按钮 -->
+            <!-- 厂家 -->
             <TextBlock Grid.Row="3" Grid.Column="0" Text="厂家：" Style="{StaticResource DialogLabelStyle}"/>
-            <Grid Grid.Row="3" Grid.Column="1" VerticalAlignment="Center">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="Auto"/>
-                </Grid.ColumnDefinitions>
-                <ComboBox Grid.Column="0"
-                          Text="{Binding Manufacturer, UpdateSourceTrigger=PropertyChanged}"
-                          ItemsSource="{Binding Manufacturers}"
-                          Style="{StaticResource DialogComboBoxStyle}"/>
-                <Button Grid.Column="1"
-                        Command="{Binding AddManufacturerCommand}"
-                        Style="{StaticResource DialogAddButtonStyle}"/>
-            </Grid>
+            <ComboBox Grid.Row="3" Grid.Column="1"
+                      ItemsSource="{Binding Manufacturers}"
+                      DisplayMemberPath="Name"
+                      SelectedValuePath="Id"
+                      SelectedValue="{Binding ManufacturerId}"
+                      Style="{StaticResource DialogComboBoxStyle}"/>
 
-            <!-- 项目 + 按钮 -->
+            <!-- 项目 -->
             <TextBlock Grid.Row="4" Grid.Column="0" Text="项目：" Style="{StaticResource DialogLabelStyle}"/>
-            <Grid Grid.Row="4" Grid.Column="1" VerticalAlignment="Center">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="Auto"/>
-                </Grid.ColumnDefinitions>
-                <ComboBox Grid.Column="0"
-                          Text="{Binding ProjectName, UpdateSourceTrigger=PropertyChanged}"
-                          ItemsSource="{Binding Projects}"
-                          Style="{StaticResource DialogComboBoxStyle}"/>
-                <Button Grid.Column="1"
-                        Command="{Binding AddProjectCommand}"
-                        Style="{StaticResource DialogAddButtonStyle}"/>
-            </Grid>
+            <ComboBox Grid.Row="4" Grid.Column="1"
+                      ItemsSource="{Binding Projects}"
+                      DisplayMemberPath="Name"
+                      SelectedValuePath="Id"
+                      SelectedValue="{Binding ProjectId}"
+                      Style="{StaticResource DialogComboBoxStyle}"/>
 
             <!-- 货位 -->
             <TextBlock Grid.Row="5" Grid.Column="0" Text="货位：" Style="{StaticResource DialogLabelStyle}"/>

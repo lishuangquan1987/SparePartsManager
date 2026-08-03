@@ -53,6 +53,15 @@ public class MainViewModel : ObservableObject
         set => SetProperty(ref _warningDetailText, value);
     }
 
+    private string? _currentNavTag;
+
+    private StockAlertViewModel? _alertViewModel;
+
+    /// <summary>
+    /// 会话内是否已单次消除报警（消除后规则变更不再自动重新拉起，重启后重置）。
+    /// </summary>
+    private bool _warningsDismissed;
+
     private object? _currentView;
     public object? CurrentView
     {
@@ -70,16 +79,21 @@ public class MainViewModel : ObservableObject
 
     public RelayCommand<string> NavigateCommand { get; }
     public RelayCommand ExitCommand { get; }
+    public RelayCommand DismissWarningCommand { get; }
 
     public MainViewModel()
     {
         NavigateCommand = new RelayCommand<string>(Navigate);
         ExitCommand = new RelayCommand(Exit);
+        DismissWarningCommand = new RelayCommand(DismissWarning);
 
         if (CurrentUser.IsLoggedIn)
         {
             UserInfo = $"👤 {CurrentUser.LoginUser!.RealName}\n({CurrentUser.LoginUser.Role})";
         }
+
+        // 基础字典（规格/型号/厂家/项目）变化时重新检查库存报警
+        DropdownDataService.Instance.DataChanged += RefreshStockAlerts;
 
         CheckStockAlerts();
     }
@@ -88,28 +102,60 @@ public class MainViewModel : ObservableObject
     {
         if (string.IsNullOrEmpty(tag)) return;
 
-        StatusText = tag switch
+        // 离开库存警告页时解除订阅，避免旧视图被事件长期引用
+        if (_alertViewModel != null)
         {
-            "stockin" => "备件入库",
-            "stockout" => "备件出库",
-            "query" => "备件查询",
-            "stats" => "统计分析",
-            "users" => "用户管理",
-            "alert" => "库存警告设置",
-            _ => "就绪"
-        };
+            _alertViewModel.AlertsChanged -= RefreshStockAlerts;
+            _alertViewModel = null;
+        }
 
-        CurrentView = tag switch
+        _currentNavTag = tag;
+        StatusText = GetStatusText(tag);
+
+        switch (tag)
         {
-            "stockin" => new StockInViewModel(),
-            "stockout" => new StockOutViewModel(),
-            "query" => new QueryViewModel(),
-            "stats" => new StatisticsViewModel(),
-            "users" => CurrentUser.IsAdmin ? new UserManageViewModel() : null,
-            "alert" => CurrentUser.IsAdmin ? new StockAlertViewModel() : null,
-            _ => null
-        };
+            case "stockin":
+                CurrentView = new StockInViewModel();
+                break;
+            case "stockout":
+                CurrentView = new StockOutViewModel();
+                break;
+            case "query":
+                CurrentView = new QueryViewModel();
+                break;
+            case "stats":
+                CurrentView = new StatisticsViewModel();
+                break;
+            case "users":
+                CurrentView = CurrentUser.IsAdmin ? new UserManageViewModel() : null;
+                break;
+            case "basicdata":
+                CurrentView = CurrentUser.IsAdmin ? new BasicDataViewModel() : null;
+                break;
+            case "alert":
+                _alertViewModel = CurrentUser.IsAdmin ? new StockAlertViewModel() : null;
+                if (_alertViewModel != null)
+                    _alertViewModel.AlertsChanged += RefreshStockAlerts;
+
+                CurrentView = _alertViewModel;
+                break;
+            default:
+                CurrentView = null;
+                break;
+        }
     }
+
+    private static string GetStatusText(string? tag) => tag switch
+    {
+        "stockin" => "备件入库",
+        "stockout" => "备件出库",
+        "query" => "备件查询",
+        "stats" => "统计分析",
+        "users" => "用户管理",
+        "basicdata" => "基础信息维护",
+        "alert" => "库存警告设置",
+        _ => "就绪"
+    };
 
     private void Exit()
     {
@@ -144,39 +190,88 @@ public class MainViewModel : ObservableObject
     {
         try
         {
-            var db = SqlSugarHelper.Db;
-            var alerts = db.Queryable<StockAlert>().ToList();
+            ApplyWarnings(ComputeWarnings(), showPopup: true);
+        }
+        catch { }
+    }
 
-            var warningList = new System.Collections.Generic.List<string>();
-            foreach (var alert in alerts)
+    /// <summary>
+    /// 库存警告规则发生变化后重新检查报警（静默，不弹窗）。
+    /// 由 StockAlertViewModel 在新增/编辑/删除规则后触发。
+    /// </summary>
+    public void RefreshStockAlerts()
+    {
+        // 本次会话已单次消除报警：规则变更不再把相同报警重新拉起，重启后自然恢复
+        if (_warningsDismissed) return;
+
+        try
+        {
+            ApplyWarnings(ComputeWarnings(), showPopup: false);
+        }
+        catch { }
+    }
+
+    /// <summary>
+    /// 单次消除报警：只清除当前 UI 报警状态，不删除规则，下次启动仍会重新报警。
+    /// </summary>
+    private void DismissWarning()
+    {
+        _warningsDismissed = true;
+        WarningCount = 0;
+        WarningDetailText = string.Empty;
+        StatusText = GetStatusText(_currentNavTag);
+        StopWarningFlash();
+    }
+
+    private System.Collections.Generic.List<string> ComputeWarnings()
+    {
+        var db = SqlSugarHelper.Db;
+        var alerts = db.Queryable<StockAlert>().ToList();
+
+        var specDict = db.Queryable<Specification>().ToList().ToDictionary(s => s.Id, s => s.Name);
+        var modelDict = db.Queryable<PartModel>().ToList().ToDictionary(m => m.Id, m => m.Name);
+
+        var warningList = new System.Collections.Generic.List<string>();
+        foreach (var alert in alerts)
+        {
+            var count = db.Queryable<SparePart>()
+                .Count(p => p.SpecificationId == alert.SpecificationId
+                    && p.ModelId == alert.ModelId
+                    && p.Status == "InStock");
+
+            if (count < alert.Threshold)
             {
-                var count = db.Queryable<SparePart>()
-                    .Count(p => p.Specification == alert.Specification
-                        && p.Model == alert.Model
-                        && p.Status == "InStock");
-
-                if (count < alert.Threshold)
-                {
-                    warningList.Add($"【{alert.Specification}】{alert.Model}：库存 {count}，低于阈值 {alert.Threshold}");
-                }
+                var specName = alert.SpecificationId.HasValue && specDict.TryGetValue(alert.SpecificationId.Value, out var sn) ? sn : "";
+                var modelName = alert.ModelId.HasValue && modelDict.TryGetValue(alert.ModelId.Value, out var mn) ? mn : "";
+                warningList.Add($"【{specName}】{modelName}：库存 {count}，低于阈值 {alert.Threshold}");
             }
+        }
 
-            if (warningList.Count > 0)
+        return warningList;
+    }
+
+    private void ApplyWarnings(System.Collections.Generic.List<string> warningList, bool showPopup)
+    {
+        if (warningList.Count > 0)
+        {
+            if (showPopup)
             {
                 var msg = "以下备件库存不足：\n\n" + string.Join("\n", warningList);
                 MessageBox.Show(msg, "⚠️ 库存警告", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
 
-                WarningCount = warningList.Count;
-                WarningDetailText = string.Join("  |  ", warningList);
-                StatusText = $"⚠️ {WarningCount}种备件库存不足";
-                StartWarningFlash();
-            }
-            else
-            {
-                WarningDetailText = string.Empty;
-                StopWarningFlash();
-            }
+            WarningCount = warningList.Count;
+            WarningDetailText = string.Join("  |  ", warningList);
+            StatusText = $"⚠️ {WarningCount}种备件库存不足";
+            StartWarningFlash();
         }
-        catch { }
+        else
+        {
+            // 报警全部消除：完整重置状态，避免残留旧报警
+            WarningCount = 0;
+            WarningDetailText = string.Empty;
+            StatusText = GetStatusText(_currentNavTag);
+            StopWarningFlash();
+        }
     }
 }

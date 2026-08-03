@@ -33,12 +33,12 @@ public class QueryItemViewModel
 
 public class QueryViewModel : ObservableObject
 {
-    // ========== 下拉框选项 ==========
+    // ========== 下拉框选项（只读选择） ==========
 
-    public ObservableCollection<string> SpecOptions => DropdownDataService.Instance.Specifications;
-    public ObservableCollection<string> ModelOptions => DropdownDataService.Instance.Models;
-    public ObservableCollection<string> ManufacturerOptions => DropdownDataService.Instance.Manufacturers;
-    public ObservableCollection<string> ProjectOptions => DropdownDataService.Instance.Projects;
+    public ObservableCollection<DictItem> SpecOptions => DropdownDataService.Instance.Specifications;
+    public ObservableCollection<DictItem> ModelOptions => DropdownDataService.Instance.Models;
+    public ObservableCollection<DictItem> ManufacturerOptions => DropdownDataService.Instance.Manufacturers;
+    public ObservableCollection<DictItem> ProjectOptions => DropdownDataService.Instance.Projects;
 
     // ========== 搜索字段 ==========
 
@@ -49,32 +49,32 @@ public class QueryViewModel : ObservableObject
         set => SetProperty(ref _searchName, value);
     }
 
-    private string _searchSpecification = string.Empty;
-    public string SearchSpecification
+    private int? _searchSpecificationId;
+    public int? SearchSpecificationId
     {
-        get => _searchSpecification;
-        set => SetProperty(ref _searchSpecification, value);
+        get => _searchSpecificationId;
+        set => SetProperty(ref _searchSpecificationId, value);
     }
 
-    private string _searchModel = string.Empty;
-    public string SearchModel
+    private int? _searchModelId;
+    public int? SearchModelId
     {
-        get => _searchModel;
-        set => SetProperty(ref _searchModel, value);
+        get => _searchModelId;
+        set => SetProperty(ref _searchModelId, value);
     }
 
-    private string _searchManufacturer = string.Empty;
-    public string SearchManufacturer
+    private int? _searchManufacturerId;
+    public int? SearchManufacturerId
     {
-        get => _searchManufacturer;
-        set => SetProperty(ref _searchManufacturer, value);
+        get => _searchManufacturerId;
+        set => SetProperty(ref _searchManufacturerId, value);
     }
 
-    private string _searchProjectName = string.Empty;
-    public string SearchProjectName
+    private int? _searchProjectId;
+    public int? SearchProjectId
     {
-        get => _searchProjectName;
-        set => SetProperty(ref _searchProjectName, value);
+        get => _searchProjectId;
+        set => SetProperty(ref _searchProjectId, value);
     }
 
     private int? _searchShelfNo;
@@ -242,7 +242,6 @@ public class QueryViewModel : ObservableObject
         LoadParts();
     }
 
-
     private void FirstPage() { CurrentPage = 1; LoadParts(); }
     private void PrevPage() { if (CurrentPage > 1) { CurrentPage--; LoadParts(); } }
     private void NextPage() { if (CurrentPage < TotalPages) { CurrentPage++; LoadParts(); } }
@@ -262,10 +261,6 @@ public class QueryViewModel : ObservableObject
             var db = SqlSugarHelper.Db;
 
             var name = SearchName.Trim();
-            var spec = SearchSpecification.Trim();
-            var model = SearchModel.Trim();
-            var manufacturer = SearchManufacturer.Trim();
-            var projectName = SearchProjectName.Trim();
             var stockInPerson = SearchStockInPerson.Trim();
             var stockOutPerson = SearchStockOutPerson.Trim();
             var remark = SearchRemark.Trim();
@@ -279,15 +274,15 @@ public class QueryViewModel : ObservableObject
 
             var alertDict = db.Queryable<StockAlert>()
                 .ToList()
-                .ToDictionary(a => $"{a.Specification}|{a.Model}", a => a.Threshold);
+                .ToDictionary(a => $"{a.SpecificationId}|{a.ModelId}", a => a.Threshold);
 
             // 查询总数
             var totalQuery = db.Queryable<SparePart>()
                 .WhereIF(!string.IsNullOrEmpty(name), p => p.Name.Contains(name))
-                .WhereIF(!string.IsNullOrEmpty(spec), p => p.Specification.Contains(spec))
-                .WhereIF(!string.IsNullOrEmpty(model), p => p.Model.Contains(model))
-                .WhereIF(!string.IsNullOrEmpty(manufacturer), p => p.Manufacturer.Contains(manufacturer))
-                .WhereIF(!string.IsNullOrEmpty(projectName), p => p.ProjectName != null && p.ProjectName.Contains(projectName))
+                .WhereIF(SearchSpecificationId.HasValue, p => p.SpecificationId == SearchSpecificationId.Value)
+                .WhereIF(SearchModelId.HasValue, p => p.ModelId == SearchModelId.Value)
+                .WhereIF(SearchManufacturerId.HasValue, p => p.ManufacturerId == SearchManufacturerId.Value)
+                .WhereIF(SearchProjectId.HasValue, p => p.ProjectId == SearchProjectId.Value)
                 .WhereIF(SearchShelfNo.HasValue, p => p.ShelfNo == SearchShelfNo.Value)
                 .WhereIF(SearchLayerNo.HasValue, p => p.LayerNo == SearchLayerNo.Value)
                 .WhereIF(SearchPositionNo.HasValue, p => p.PositionNo == SearchPositionNo.Value)
@@ -311,25 +306,31 @@ public class QueryViewModel : ObservableObject
 
             var stockCountDict = db.Queryable<SparePart>()
                 .Where(p => p.Status == "InStock")
-                .GroupBy(p => new { p.Specification, p.Model })
-                .Select(g => new { g.Specification, g.Model, Count = SqlFunc.AggregateCount(g.Id) })
+                .GroupBy(p => new { p.SpecificationId, p.ModelId })
+                .Select(g => new { g.SpecificationId, g.ModelId, Count = SqlFunc.AggregateCount(g.Id) })
                 .ToList()
-                .ToDictionary(x => $"{x.Specification}|{x.Model}", x => x.Count);
+                .ToDictionary(x => $"{x.SpecificationId}|{x.ModelId}", x => x.Count);
+
+            var specDict = db.Queryable<Specification>().ToList().ToDictionary(s => s.Id, s => s.Name);
+            var modelDict = db.Queryable<PartModel>().ToList().ToDictionary(m => m.Id, m => m.Name);
+            var manDict = db.Queryable<Manufacturer>().ToList().ToDictionary(m => m.Id, m => m.Name);
+            var projDict = db.Queryable<Project>().ToList().ToDictionary(p => p.Id, p => p.Name);
 
             Parts.Clear();
             foreach (var p in parts)
             {
-                var key = $"{p.Specification}|{p.Model}";
+                var key = $"{p.SpecificationId}|{p.ModelId}";
                 var hasAlert = alertDict.TryGetValue(key, out var threshold);
-                var stockCount = stockCountDict.GetValueOrDefault(key, 0);
+                var stockCount = stockCountDict.TryGetValue(key, out var cnt) ? cnt : 0;
 
                 Parts.Add(new QueryItemViewModel
                 {
                     Id = p.Id,
                     Name = p.Name,
-                    Specification = p.Specification,
-                    Model = p.Model,
-                    Manufacturer = p.Manufacturer,
+                    Specification = p.SpecificationId.HasValue && specDict.TryGetValue(p.SpecificationId.Value, out var sn) ? sn : "",
+                    Model = p.ModelId.HasValue && modelDict.TryGetValue(p.ModelId.Value, out var mn) ? mn : "",
+                    Manufacturer = p.ManufacturerId.HasValue && manDict.TryGetValue(p.ManufacturerId.Value, out var man) ? man : "",
+                    ProjectName = p.ProjectId.HasValue && projDict.TryGetValue(p.ProjectId.Value, out var proj) ? proj : null,
                     ShelfNo = p.ShelfNo,
                     LayerNo = p.LayerNo,
                     PositionNo = p.PositionNo,
@@ -339,7 +340,6 @@ public class QueryViewModel : ObservableObject
                     StockOutPerson = p.StockOutPerson,
                     Status = p.Status,
                     Remark = p.Remark,
-                    ProjectName = p.ProjectName,
                     IsLowStock = hasAlert && p.Status == "InStock" && stockCount < threshold
                 });
             }
@@ -359,10 +359,10 @@ public class QueryViewModel : ObservableObject
     private void Reset()
     {
         SearchName = string.Empty;
-        SearchSpecification = string.Empty;
-        SearchModel = string.Empty;
-        SearchManufacturer = string.Empty;
-        SearchProjectName = string.Empty;
+        SearchSpecificationId = null;
+        SearchModelId = null;
+        SearchManufacturerId = null;
+        SearchProjectId = null;
         SearchShelfNo = null;
         SearchLayerNo = null;
         SearchPositionNo = null;

@@ -88,15 +88,18 @@
             </Grid.RowDefinitions>
 
             <TextBlock Grid.Row="0" Grid.Column="0" Text="规格：" Style="{StaticResource DialogLabelStyle}"/>
-            <ComboBox Grid.Row="0" Grid.Column="1" IsEditable="True"
+            <ComboBox Grid.Row="0" Grid.Column="1" IsEditable="False"
                       ItemsSource="{Binding SpecOptions}" IsEnabled="{Binding IsSpecEnabled}"
-                      Text="{Binding Specification, UpdateSourceTrigger=PropertyChanged}"
+                      DisplayMemberPath="Name" SelectedValuePath="Id"
+                      SelectedValue="{Binding SpecificationId}"
                       Height="30" VerticalAlignment="Center" BorderBrush="#CCC"/>
 
             <TextBlock Grid.Row="1" Grid.Column="0" Text="型号：" Style="{StaticResource DialogLabelStyle}"/>
-            <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding Model, UpdateSourceTrigger=PropertyChanged}"
-                     Height="30" VerticalAlignment="Center" BorderBrush="#CCC" BorderThickness="1" Padding="6,2"
-                     IsReadOnly="{Binding IsModelReadOnly}"/>
+            <ComboBox Grid.Row="1" Grid.Column="1" IsEditable="False"
+                      ItemsSource="{Binding ModelOptions}" IsEnabled="{Binding IsModelEnabled}"
+                      DisplayMemberPath="Name" SelectedValuePath="Id"
+                      SelectedValue="{Binding ModelId}"
+                      Height="30" VerticalAlignment="Center" BorderBrush="#CCC"/>
 
             <TextBlock Grid.Row="2" Grid.Column="0" Text="最低阈值：" Style="{StaticResource DialogLabelStyle}"/>
             <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding Threshold, UpdateSourceTrigger=PropertyChanged}"
